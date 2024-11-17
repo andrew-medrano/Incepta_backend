@@ -17,7 +17,9 @@ A semantic search engine backend that enables intelligent searching across unive
 
 ### Search Engines
 - `semantic_llm_search.py`: Advanced search with cross-encoder reranking and LLM explanations
+    - To run this script, you need to provide the path to the Pinecone API key file and the OpenAI API key file.
 - `embeddings_search.py`: Basic embeddings-based vector search
+    - To run this script, you need to provide the path to the Pinecone API key file.
 
 ### Data Processing
 - `embeddings_generator.py`: Generates and stores embeddings in Pinecone

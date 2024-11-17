@@ -2,14 +2,15 @@ from pinecone import Pinecone
 import tkinter as tk
 from tkinter import ttk, scrolledtext
 import argparse
+import os
 
 class EmbeddingsSearch:
-    def __init__(self, index_name="stanford tech", top_k=10):
+    def __init__(self, index_name="stanford tech", top_k=10, pinecone_api_key_path=None):
         self.index_aliases = {
             "stanford tech": "stanford-techfinder-133-v1",
             "grants sbir": "grants-sbir-2000-v1"
         }
-        PINECONE_API_KEY = open("/Users/andre/startup/pinecone_api_key.txt", "r").read()
+        PINECONE_API_KEY = open(pinecone_api_key_path, "r").read().strip() if pinecone_api_key_path else os.getenv('PINECONE_API_KEY')
         self.pc = Pinecone(api_key=PINECONE_API_KEY)
         self.set_index(index_name)
         self.top_k = top_k
@@ -38,12 +39,12 @@ class EmbeddingsSearch:
         return results
 
 class SearchGUI:
-    def __init__(self, master, title="Embeddings Search on University Tech and Government Grants", geometry="600x800", index_name="stanford tech"):
+    def __init__(self, master, ss: EmbeddingsSearch, title="Embeddings Search on University Tech and Government Grants", geometry="600x800", index_name="stanford tech"):
         self.master = master
         self.master.title(title)
         self.master.geometry(geometry)
 
-        self.es = EmbeddingsSearch(index_name)
+        self.es = ss
 
         self.create_widgets()
 
@@ -101,6 +102,9 @@ if __name__ == "__main__":
     parser.add_argument("--geometry", type=str, default="600x800", help="Geometry of the GUI window")
     args = parser.parse_args()
 
+    pinecone_api_key_path = input("Enter the path to the Pinecone API key file: ") or "/Users/andre/startup/pinecone_api_key.txt"
+
     root = tk.Tk()
-    app = SearchGUI(root, title=args.title, geometry=args.geometry, index_name=args.index)
+    ss = EmbeddingsSearch(index_name=args.index, pinecone_api_key_path=args.pinecone_api_key_path)
+    app = SearchGUI(root, ss, title=args.title, geometry=args.geometry, index_name=args.index)
     root.mainloop()

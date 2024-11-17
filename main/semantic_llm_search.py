@@ -161,17 +161,16 @@ if __name__ == "__main__":
     parser.add_argument("--index", type=str, default="stanford tech", help="Name of the Pinecone index to use")
     parser.add_argument("--title", type=str, default="Semantic Search on University Tech and Government Grants", help="Title for the GUI window")
     parser.add_argument("--geometry", type=str, default="800x1000", help="Geometry of the GUI window")
-    parser.add_argument("--pinecone_api_key_path", type=str, help="Path to the file containing the Pinecone API key")
-    parser.add_argument("--openai_api_key_path", type=str, help="Path to the file containing the OpenAI API key")
     args = parser.parse_args()
 
-    # check if args.pinecone_api_key_path and args.openai_api_key_path are provided
-    if not args.pinecone_api_key_path or not args.openai_api_key_path:
+    pinecone_api_key_path = input("Enter the path to the Pinecone API key file: ") or "/Users/andre/startup/pinecone_api_key.txt"
+    openai_api_key_path = input("Enter the path to the OpenAI API key file: ") or "/Users/andre/startup/openai_api_key.txt"
+    if not pinecone_api_key_path or not openai_api_key_path:
         print("Error: Pinecone and OpenAI API key paths are required.")
         parser.print_help()
         exit(1)
 
     root = tk.Tk()
-    ss = SemanticSearch(index_name=args.index, pinecone_api_key_path=args.pinecone_api_key_path, openai_api_key_path=args.openai_api_key_path)
+    ss = SemanticSearch(index_name=args.index, pinecone_api_key_path=pinecone_api_key_path, openai_api_key_path=openai_api_key_path)
     app = SearchGUI(root, ss, title=args.title, geometry=args.geometry, index_name=args.index)
     root.mainloop()

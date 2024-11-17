@@ -3,7 +3,7 @@ from pinecone import Pinecone, ServerlessSpec
 import time
 
 class EmbeddingsGenerator:
-    def __init__(self, index_name = "stanford-techfinder-10-v2", data_path = "/Users/andre/startup/data/stanford_techfinder_10_pages.csv", batch_start = 0, data_limit = 2000):
+    def __init__(self, data_path, index_name = "stanford-techfinder-10-v2", batch_start = 0, data_limit = 2000):
         self.pc = None
         self.index_name = index_name
         self.data_path = data_path
@@ -90,10 +90,14 @@ class EmbeddingsGenerator:
         print("Embedding generation and upsert process complete.")
 
 if __name__ == "__main__":
+    index_name = input("Enter the name of the Pinecone index to use (default: grants-sbir-2000-v1): ") or "grants-sbir-2000-v1"
+    data_path = input("Enter the path to the CSV file containing the data: ") or "/Users/andre/startup/Incepta_backend/data/grants/topics_search_1731781387.csv"
+
     eg = EmbeddingsGenerator(
-        index_name="grants-sbir-2000-v1",
-        data_path="/Users/andre/startup/grants/topics_search_1731781387.csv",
+        index_name=index_name,
+        data_path=data_path,
     )
+
     print("Starting embedding generation process...")
     eg.setup()
     eg.load_data()
