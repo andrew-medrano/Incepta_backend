@@ -13,12 +13,12 @@ import argparse
 nltk.download('punkt')
 
 class SemanticSearch:
-    def __init__(self, index_name="stanford tech", top_k=10):
+    def __init__(self, index_name="stanford tech", top_k=10, pinecone_api_key_path=None, openai_api_key_path=None):
         self.index_aliases = {
             "stanford tech": "stanford-techfinder-133-v1",
             "grants sbir": "grants-sbir-2000-v1"
         }
-        PINECONE_API_KEY = open("/Users/andre/startup/pinecone_api_key.txt", "r").read()
+        PINECONE_API_KEY = open(pinecone_api_key_path, "r").read().strip() if pinecone_api_key_path else os.getenv('PINECONE_API_KEY')
         self.pc = Pinecone(api_key=PINECONE_API_KEY)
         self.set_index(index_name)
         self.top_k = top_k
@@ -29,7 +29,7 @@ class SemanticSearch:
         
         # Add OpenAI client initialization
         self.MODEL = "gpt-4o-mini"
-        OPENAI_API_KEY = os.getenv('OPENAI_API_KEY') or open("/Users/andre/startup/openai_api_key.txt", "r").read().strip()
+        OPENAI_API_KEY = open(openai_api_key_path, "r").read().strip() if openai_api_key_path else os.getenv('OPENAI_API_KEY')
         self.client = OpenAI(api_key=OPENAI_API_KEY)
 
     def set_index(self, index_name):
@@ -93,12 +93,12 @@ class SemanticSearch:
         return response.choices[0].message.content.strip()
 
 class SearchGUI:
-    def __init__(self, master, title="Semantic Search on University Tech and Government Grants", geometry="800x1000", index_name="stanford tech"):
+    def __init__(self, master, ss: SemanticSearch, title="Semantic Search on University Tech and Government Grants", geometry="800x1000", index_name="stanford tech"):
         self.master = master
         self.master.title(title)
         self.master.geometry(geometry)
 
-        self.ss = SemanticSearch(index_name)
+        self.ss = ss
         self.create_widgets()
 
     def create_widgets(self):
@@ -161,8 +161,17 @@ if __name__ == "__main__":
     parser.add_argument("--index", type=str, default="stanford tech", help="Name of the Pinecone index to use")
     parser.add_argument("--title", type=str, default="Semantic Search on University Tech and Government Grants", help="Title for the GUI window")
     parser.add_argument("--geometry", type=str, default="800x1000", help="Geometry of the GUI window")
+    parser.add_argument("--pinecone_api_key_path", type=str, help="Path to the file containing the Pinecone API key")
+    parser.add_argument("--openai_api_key_path", type=str, help="Path to the file containing the OpenAI API key")
     args = parser.parse_args()
 
+    # check if args.pinecone_api_key_path and args.openai_api_key_path are provided
+    if not args.pinecone_api_key_path or not args.openai_api_key_path:
+        print("Error: Pinecone and OpenAI API key paths are required.")
+        parser.print_help()
+        exit(1)
+
     root = tk.Tk()
-    app = SearchGUI(root, title=args.title, geometry=args.geometry, index_name=args.index)
+    ss = SemanticSearch(index_name=args.index, pinecone_api_key_path=args.pinecone_api_key_path, openai_api_key_path=args.openai_api_key_path)
+    app = SearchGUI(root, ss, title=args.title, geometry=args.geometry, index_name=args.index)
     root.mainloop()
