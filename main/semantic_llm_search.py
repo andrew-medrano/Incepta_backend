@@ -1,13 +1,18 @@
+import os
+# Set this before importing any HuggingFace libraries
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
+
 from pinecone import Pinecone
 from sentence_transformers import CrossEncoder, SentenceTransformer
 import numpy as np
 from nltk.tokenize import sent_tokenize
 import nltk
-from openai import OpenAI
+from openai import AsyncOpenAI
 import os
 import tkinter as tk
 from tkinter import ttk, scrolledtext
 import argparse
+import asyncio
 
 # Download NLTK data files (only need to run once)
 nltk.download('punkt')
@@ -30,14 +35,14 @@ class SemanticSearch:
         # Add OpenAI client initialization
         self.MODEL = "gpt-4o-mini"
         OPENAI_API_KEY = open(openai_api_key_path, "r").read().strip() if openai_api_key_path else os.getenv('OPENAI_API_KEY')
-        self.client = OpenAI(api_key=OPENAI_API_KEY)
+        self.client = AsyncOpenAI(api_key=OPENAI_API_KEY)
 
     def set_index(self, index_name):
         actual_index_name = self.index_aliases.get(index_name, index_name)
         self.index = self.pc.Index(actual_index_name)
         self.index_name = index_name
 
-    def search(self, query):
+    async def search(self, query):
         # Perform initial retrieval using embeddings
         embedding = self.pc.inference.embed(
             model="multilingual-e5-large",
@@ -67,14 +72,23 @@ class SemanticSearch:
         sorted_matches = sorted(results['matches'], key=lambda x: x['relevance_score'], reverse=True)
         # Select top_k results
         top_matches = sorted_matches[:self.top_k]
-        # Generate explanations for each top match
+        # Generate explanations in parallel
+        explanation_tasks = []
         for match in top_matches:
             document_text = match['metadata']['text']
-            explanation = self.generate_explanation(query, document_text)
+            task = self.generate_explanation(query, document_text)
+            explanation_tasks.append(task)
+        
+        # Wait for all explanations to complete
+        explanations = await asyncio.gather(*explanation_tasks)
+        
+        # Attach explanations to matches
+        for match, explanation in zip(top_matches, explanations):
             match['explanation'] = explanation
+            
         return top_matches
 
-    def generate_explanation(self, query, document_text):
+    async def generate_explanation(self, query, document_text):
         # Create a prompt for the LLM
         prompt = f"""Given the search query: "{query}"
         And this document excerpt: "{document_text}"
@@ -82,7 +96,7 @@ class SemanticSearch:
         Provide a brief (1-2 sentences) explanation of why this document is relevant to the query.
         Focus on the specific aspects that make it a good match."""
 
-        response = self.client.chat.completions.create(
+        response = await self.client.chat.completions.create(
             model=self.MODEL,
             messages=[
                 {"role": "system", "content": "You are a helpful assistant that very briefly explains document relevance. Be concise and don't explain anything that is redundant or obvious. Start with 'This document discusses', and jump directly into explanation."},
@@ -91,6 +105,10 @@ class SemanticSearch:
         )
         
         return response.choices[0].message.content.strip()
+
+    def search_sync(self, query):
+        """Synchronous wrapper for the async search method"""
+        return asyncio.run(self.search(query))
 
 class SearchGUI:
     def __init__(self, master, ss: SemanticSearch, title="Semantic Search on University Tech and Government Grants", geometry="800x1000", index_name="stanford tech"):
@@ -127,7 +145,8 @@ class SearchGUI:
 
     def perform_search(self):
         query = self.query_entry.get()
-        results = self.ss.search(query)
+        # Run the async search in the event loop
+        results = asyncio.run(self.ss.search(query))
         
         self.results_text.delete(1.0, tk.END)
         for match in results:

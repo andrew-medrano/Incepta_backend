@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Embeddings Search</title>
+    <title>Semantic Search</title>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <style>
         body {
@@ -102,12 +102,72 @@
             margin-top: 40px;
             text-align: left;
         }
+
+        .result {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .explanation {
+            color: #2e7d32;
+            font-style: italic;
+            margin: 10px 0;
+            font-size: 1.1em;
+            border-left: 4px solid #2e7d32;
+            padding-left: 10px;
+        }
+
+        .score {
+            color: #7c4dff;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .title {
+            font-size: 1.2em;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .text {
+            color: #666;
+            line-height: 1.5;
+        }
+
+        .loader {
+            display: none;
+            margin: 20px auto;
+            width: 50px;
+            height: 50px;
+            border: 5px solid #f3f3f3;
+            border-radius: 50%;
+            border-top: 5px solid #7c4dff;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .search-button:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+
+        #query-input:disabled {
+            background-color: #f5f5f5;
+            cursor: not-allowed;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Your AI ideation tool to start <em>any</em> project.</h1>
-        <div class="subtitle">Find patents and grants to support your idea.</div>
+        <h1>Semantic Search with AI Explanations</h1>
+        <div class="subtitle">Find patents and grants with AI-powered understanding</div>
 
         <div class="search-container">
             <input type="text" id="query-input" placeholder="Enter your search query">
@@ -118,28 +178,51 @@
             </button>
         </div>
 
+        <div class="loader" id="loading-spinner"></div>
+
         <div class="toggle-container">
             <button class="toggle-button active" data-index="stanford tech">Patents</button>
             <button class="toggle-button" data-index="grants sbir">Grants</button>
         </div>
 
         <div class="info-text">
-            Incepta is powered by an LLM. Visit tech transfer and funding agency websites for more details.
+            Powered by advanced AI to understand the context of your search
         </div>
 
         <div id="results"></div>
     </div>
 
     <script>
-        // Add toggle functionality
         $('.toggle-button').click(function() {
             $('.toggle-button').removeClass('active');
             $(this).addClass('active');
         });
 
+        function setLoading(isLoading) {
+            const spinner = $('#loading-spinner');
+            const searchButton = $('.search-button');
+            const queryInput = $('#query-input');
+            const toggleButtons = $('.toggle-button');
+
+            if (isLoading) {
+                spinner.show();
+                searchButton.prop('disabled', true);
+                queryInput.prop('disabled', true);
+                toggleButtons.prop('disabled', true);
+                $('#results').empty();  // Clear previous results while loading
+            } else {
+                spinner.hide();
+                searchButton.prop('disabled', false);
+                queryInput.prop('disabled', false);
+                toggleButtons.prop('disabled', false);
+            }
+        }
+
         function performSearch() {
             const query = $('#query-input').val();
             const index = $('.toggle-button.active').data('index');
+
+            setLoading(true);
 
             $.ajax({
                 url: '/search',
@@ -158,9 +241,27 @@
                             </div>
                         `);
                     });
+                },
+                error: function(xhr, status, error) {
+                    $('#results').html(`
+                        <div class="result" style="color: red;">
+                            An error occurred while searching. Please try again.
+                        </div>
+                    `);
+                    console.error('Search error:', error);
+                },
+                complete: function() {
+                    setLoading(false);
                 }
             });
         }
+
+        // Add enter key support for search
+        $('#query-input').keypress(function(e) {
+            if (e.which == 13) {  // Enter key
+                performSearch();
+            }
+        });
     </script>
 </body>
 </html>
