@@ -46,6 +46,10 @@ def search():
     
     return jsonify(formatted_results)
 
+@app.route('/about')
+def about():
+    return render_template('about.html')
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Web App for Semantic Search")
     parser.add_argument("--pinecone_api_key_path", type=str, 
