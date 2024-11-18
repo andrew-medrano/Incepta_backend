@@ -29,7 +29,7 @@ def search():
         try:
             full_text = match['metadata']['text']
             title, *rest_of_text = full_text.split('. ', 1)
-            display_text = (rest_of_text[0] if rest_of_text else '')[:300] + '...'
+            display_text = (rest_of_text[0] if rest_of_text else '')
             
             # Ensure all values are JSON serializable
             formatted_result = {

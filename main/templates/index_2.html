@@ -2,6 +2,7 @@
 <html>
 <head>
     <title>Incepta</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/logo.png') }}">
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <style>
         body {
@@ -15,6 +16,11 @@
             padding: 1.5rem 2.5rem;
             background: transparent;
             box-shadow: none;
+        }
+
+        .nav-container {
+            max-width: 95rem;
+            margin: 0 auto;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -67,6 +73,9 @@
             background-clip: text;
             color: transparent;
             margin-bottom: 1.5rem;
+            max-width: 45rem;
+            margin-left: auto;
+            margin-right: auto;
         }
 
         .subtitle {
@@ -156,6 +165,10 @@
             text-decoration: none;
             font-size: 1.1rem;
             transition: color 0.3s ease;
+            padding: 0.5rem 1rem;
+            line-height: 1;
+            display: flex;
+            align-items: center;
         }
 
         .about-link:hover {
@@ -163,16 +176,106 @@
         }
 
         /* Update your existing results styling as needed */
+
+        .loading-spinner {
+            display: none;
+            margin: 2rem auto;
+            width: 50px;
+            height: 50px;
+            border: 3px solid #ddd6fe;
+            border-radius: 50%;
+            border-top-color: #9333ea;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .result {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: left;
+        }
+
+        .result:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 12px -1px rgba(0, 0, 0, 0.15);
+        }
+
+        .result .score {
+            color: #6366f1;
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .result .title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+            color: #1f2937;
+        }
+
+        .result .explanation {
+            color: #059669;
+            font-style: italic;
+            margin-bottom: 0.75rem;
+            line-height: 1.5;
+            border-left: 3px solid #059669;
+            padding-left: 10px;
+        }
+
+        .result .text {
+            color: #4b5563;
+            line-height: 1.6;
+            overflow: hidden;
+            position: relative;
+            max-height: 4.8em;
+            transition: max-height 0.3s ease;
+            white-space: pre-line;
+        }
+
+        .result .text br {
+            margin-bottom: 0.5em;
+            display: block;
+            content: "";
+        }
+
+        .result.expanded .text {
+            max-height: none;
+        }
+
+        .result .expand-indicator {
+            color: #6366f1;
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+            font-weight: 500;
+        }
+
+        #query-input::placeholder {
+            color: #9CA3AF;  /* Lighter gray color */
+            opacity: 0.8;    /* Makes it even lighter */
+        }
     </style>
 </head>
 <body>
     <header class="nav-header">
-        <div class="logo-container">
-            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Incepta Logo">
-            <span class="logo-text">Incepta</span>
-            <span class="beta-tag">BETA</span>
+        <div class="nav-container">
+            <div class="logo-container">
+                <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Incepta Logo">
+                <span class="logo-text">Incepta</span>
+                <span class="beta-tag">BETA</span>
+            </div>
+            <a href="{{ url_for('about') }}" class="about-link">About</a>
         </div>
-        <a href="{{ url_for('about') }}" class="about-link">About</a>
     </header>
 
     <div class="container">
@@ -198,13 +301,88 @@
             <button class="toggle-button" data-index="grants sbir">Grants</button>
         </div>
 
+        <div id="loading-spinner" class="loading-spinner"></div>
         <div id="results"></div>
     </div>
 
     <script>
+        const patentExamples = [
+            "I want to solve climate change...",
+            "I want to build drones to stop package theft...",
+            "I want to make batteries last longer...",
+            "I want to improve cancer detection..."
+        ];
+
+        const grantExamples = [
+            "I want funding for urban transportation...",
+            "I want funding for gene therapy research...",
+            "I want funding for renewable energy storage...",
+            "I want funding for AI in healthcare..."
+        ];
+
+        let currentPlaceholder = '';
+        let currentIndex = 0;
+        let charIndex = 0;
+        let isDeleting = false;
+        let typewriterTimeout;
+
+        function typeWriter() {
+            const examples = $('.toggle-button.active').data('index') === 'stanford tech' 
+                ? patentExamples 
+                : grantExamples;
+            
+            const currentText = examples[currentIndex];
+
+            if (isDeleting) {
+                currentPlaceholder = currentText.substring(0, charIndex - 1);
+                charIndex--;
+            } else {
+                currentPlaceholder = currentText.substring(0, charIndex + 1);
+                charIndex++;
+            }
+
+            $('#query-input').attr('placeholder', currentPlaceholder);
+
+            let typeSpeed = isDeleting ? 30 : 60;
+
+            if (!isDeleting && charIndex === currentText.length) {
+                isDeleting = true;
+                typeSpeed = 1500;
+            } else if (isDeleting && charIndex === 0) {
+                isDeleting = false;
+                currentIndex = (currentIndex + 1) % examples.length;
+                typeSpeed = 300;
+            }
+
+            clearTimeout(typewriterTimeout);
+            if (!$('#query-input').val()) {  // Only continue if input is empty
+                typewriterTimeout = setTimeout(typeWriter, typeSpeed);
+            }
+        }
+
+        // Start the typewriter effect
+        typeWriter();
+
+        // Update typewriter when toggle changes
         $('.toggle-button').click(function() {
             $('.toggle-button').removeClass('active');
             $(this).addClass('active');
+            
+            // Reset typewriter
+            currentIndex = 0;
+            charIndex = 0;
+            isDeleting = false;
+            typeWriter();
+        });
+
+        // Stop typewriter when user starts typing
+        $('#query-input').on('input', function() {
+            if ($(this).val()) {
+                clearTimeout(typewriterTimeout);
+                $(this).attr('placeholder', '');
+            } else {
+                typeWriter();
+            }
         });
 
         function setLoading(isLoading) {
@@ -246,9 +424,20 @@
                                 <div class="score">Relevance Score: ${result.score}</div>
                                 <div class="title">${result.title}</div>
                                 <div class="explanation">${result.explanation}</div>
-                                <div class="text">${result.text}</div>
+                                <div class="text">${result.text
+                                    .trim()
+                                    .replace(/\s*\n\s*\n\s*/g, '\n\n')
+                                    .replace(/\n/g, '<br>')}</div>
+                                <div class="expand-indicator">Click to expand</div>
                             </div>
                         `);
+                    });
+
+                    // Add click handler for expanding/collapsing
+                    $('.result').click(function() {
+                        $(this).toggleClass('expanded');
+                        const indicator = $(this).find('.expand-indicator');
+                        indicator.text($(this).hasClass('expanded') ? 'Click to collapse' : 'Click to expand');
                     });
                 },
                 error: function(xhr, status, error) {

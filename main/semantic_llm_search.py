@@ -151,12 +151,11 @@ class SearchGUI:
         self.results_text.delete(1.0, tk.END)
         for match in results:
             score = match['relevance_score']
-            full_text = match['metadata']['text'].replace('\n', ' ')  # Remove newlines from full text
+            full_text = match['metadata']['text']#.replace('\n', ' ')  # Remove newlines from full text
             title = full_text.split('.')[0]
             explanation = match['explanation']
             
-            # Limit description to 300 characters and remove newlines
-            display_text = full_text[len(title):300].replace('\n', ' ').strip() + '...'
+            display_text = full_text[len(title):].replace('\n', ' ').strip()
             
             # Insert formatted text with explanation first
             self.results_text.insert(tk.END, f"Relevance Score: {score:.4f}\n", 'score')
