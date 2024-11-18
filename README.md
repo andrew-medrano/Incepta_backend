@@ -14,18 +14,20 @@ A semantic search engine backend that enables intelligent searching across unive
 ## Project Structure
 
 Incepta_backend/
+├── README.md          # Project overview and setup instructions
+├── requirements.txt   # Python package dependencies
 ├── main/
 │   ├── static/
 │   │   └── images/        # Static assets
 │   ├── templates/
 │   │   └── index.html     # Web interface
-│   ├── web_app.py         # Flask application
-│   ├── embeddings_search.py
-│   └── semantic_llm_search.py
+│   ├── embeddings_generator.py          # Generate embeddings for data
+│   ├── embeddings_search_app.py         # Flask application
+│   ├── embeddings_search.py             # Embeddings search
+│   └── semantic_llm_search.py           # LLM-enhanced embeddings search
 ├── data/
 │   ├── stanford_techfinder_133_pages.csv
 │   └── grants_sbir_2000_pages.csv
-└── README.md
 
 ## Setup & Running
 
