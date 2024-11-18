@@ -6,28 +6,55 @@ A semantic search engine backend that enables intelligent searching across unive
 
 - **Semantic Search**: Advanced search capabilities using embeddings and cross-encoder reranking
 - **Dual Search Modes**: 
-  - Simple embeddings-based search
-  - Enhanced semantic search with LLM-powered explanations
-- **Multiple Data Sources**:
-  - Stanford University Technology Database
-  - SBIR Government Grants
-- **GUI Interface**: User-friendly interface for both search modes
+  - Patents search (Stanford University Technology Database)
+  - Grants search (SBIR Government Grants)
+- **Web Interface**: Modern, responsive web interface for easy searching
+- **LLM-Powered**: Intelligent search powered by embeddings and language models
 
-## Components
+## Project Structure
 
-### Search Engines
-- `semantic_llm_search.py`: Advanced search with cross-encoder reranking and LLM explanations
-    - To run this script, you need to provide the path to the Pinecone API key file and the OpenAI API key file.
-- `embeddings_search.py`: Basic embeddings-based vector search
-    - To run this script, you need to provide the path to the Pinecone API key file.
+Incepta_backend/
+├── main/
+│   ├── static/
+│   │   └── images/        # Static assets
+│   ├── templates/
+│   │   └── index.html     # Web interface
+│   ├── web_app.py         # Flask application
+│   ├── embeddings_search.py
+│   └── semantic_llm_search.py
+├── data/
+│   ├── stanford_techfinder_133_pages.csv
+│   └── grants_sbir_2000_pages.csv
+└── README.md
 
-### Data Processing
-- `embeddings_generator.py`: Generates and stores embeddings in Pinecone
-- `scrapers/base_scraper.py`: Base scraper class for other scrapers to inherit from
-- `scrapers/stanford_scraper.py`: Web scraper for Stanford's TechFinder database
+## Setup & Running
 
-### Data Storage
-- `/data/`: Directory for storing scraped data
-    - `stanford_techfinder_133_pages.csv`: CSV file containing scraped data from Stanford's TechFinder database. Generated using `scrapers/stanford_scraper.py` on __11/17/2024__
-    - `grants_sbir_2000_pages.csv`: CSV file containing scraped data from the SBIR Government Grants database. Downloaded from [SBIR.gov](https://www.sbir.gov/topics) on __11/17/2024__
-- Pinecone vectors are stored in the `stanford-techfinder-133-v1` and `grants-sbir-2000-v1` indexes in the cloud. They are accessed using the `semantic_llm_search.py` and `embeddings_search.py` scripts with the appropriate API keys.
+1. Install required packages:
+pip install flask beautifulsoup4 pinecone-client openai
+
+2. Set up your API keys:
+- Create a file for your Pinecone API key
+- Create a file for your OpenAI API key
+- Update the paths in web_app.py
+
+3. Run the web application:
+cd Incepta_backend/main
+python web_app.py
+
+4. Access the application:
+- Open your browser and navigate to http://localhost:5000
+- Use the search bar to query patents or grants
+- Toggle between Patents and Grants using the buttons
+
+## Data Sources
+
+- Stanford TechFinder database (scraped on 11/17/2024)
+- SBIR Government Grants database (downloaded from SBIR.gov on 11/17/2024)
+- Embeddings stored in Pinecone indexes: stanford-techfinder-133-v1 and grants-sbir-2000-v1
+
+## Development Notes
+
+- The application uses Flask for the backend server
+- Frontend built with HTML, CSS, and jQuery
+- Search results are returned via AJAX calls
+- Embeddings and semantic search handled by separate modules
