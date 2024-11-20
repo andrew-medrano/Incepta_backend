@@ -8,7 +8,8 @@ class TemplateScraper(BaseScraper):
         fieldnames = [
             'title',
             'link',
-            # Add other fields...
+            'description',
+            'develop'
         ]
         
         super().__init__(
