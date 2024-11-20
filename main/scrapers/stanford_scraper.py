@@ -2,12 +2,22 @@ from base_scraper import BaseScraper
 from bs4 import BeautifulSoup
 import time
 from typing import List, Dict
+import logging
 
 class StanfordScraper(BaseScraper):
     """Scraper for Stanford TechFinder website"""
 
     def __init__(self):
-        super().__init__("https://techfinder.stanford.edu/")
+        fieldnames = ['university', 'title', 'description', 'link']
+        headers = {
+            'User-Agent': 'StanfordScraper/1.0 (research@joinincepta.com)'
+        }
+        super().__init__(
+            base_url="https://techfinder.stanford.edu/",
+            fieldnames=fieldnames,
+            headers=headers
+        )
+        self.university_name = "Stanford University"
 
     def get_page_soup(self, page_number: int) -> BeautifulSoup:
         """
@@ -21,6 +31,7 @@ class StanfordScraper(BaseScraper):
         """
         url = f"{self.base_url}?page={page_number}"
         response = self.session.get(url)
+        response.raise_for_status()  # Raise exception for bad status codes
         soup = BeautifulSoup(response.content, 'html.parser')
         time.sleep(1)  # Be polite and avoid overloading the server
         return soup
@@ -38,10 +49,13 @@ class StanfordScraper(BaseScraper):
         titles = soup.find_all('h3', class_='teaser__title')
         items = []
         for title in titles:
-            items.append({
-                'title': title.text.strip(),
-                'link': self.base_url[:-1] + title.find('a')['href']
-            })
+            link_element = title.find('a')
+            if link_element and link_element.get('href'):
+                items.append({
+                    'university': self.university_name,
+                    'title': title.text.strip(),
+                    'link': self.make_absolute_url(link_element['href'])
+                })
         return items
 
     def get_item_details(self, link: str) -> Dict[str, str]:
@@ -55,8 +69,9 @@ class StanfordScraper(BaseScraper):
             Dict[str, str]: Dictionary containing the item's description.
         """
         response = self.session.get(link)
+        response.raise_for_status()
         soup = BeautifulSoup(response.content, 'html.parser')
-        time.sleep(0.1)  # Be polite and avoid overloading the server
+        time.sleep(0.5)  # Increased delay to be more conservative
         
         description = self.get_description(soup)
         return {'description': description}
@@ -75,19 +90,24 @@ class StanfordScraper(BaseScraper):
             # Get applications
             applications_header = subpage_soup.find('h2', string="Applications")
             applications = []
-            if applications_header:
-                applications = [li.get_text() for li in applications_header.find_next('ul').find_all('li')]
+            if applications_header and applications_header.find_next('ul'):
+                applications = [li.get_text().strip() for li in applications_header.find_next('ul').find_all('li')]
 
             # Get advantages
             advantages_header = subpage_soup.find('h2', string="Advantages")
             advantages = []
-            if advantages_header:
-                advantages = [li.get_text() for li in advantages_header.find_next('ul').find_all('li')]
+            if advantages_header and advantages_header.find_next('ul'):
+                advantages = [li.get_text().strip() for li in advantages_header.find_next('ul').find_all('li')]
             
             # Get descriptions
+            description_div = subpage_soup.find('div', class_='docket__text')
+            if not description_div:
+                return "Description not available"
+                
             descriptions = [
                 para.get_text().strip() 
-                for para in subpage_soup.find('div', class_='docket__text').find_all('p')
+                for para in description_div.find_all('p')
+                if para.get_text().strip()
             ]
             full_description = " ".join(descriptions)
 
@@ -104,7 +124,7 @@ class StanfordScraper(BaseScraper):
             return ' '.join(full_paragraph.replace('\n', ' ').split())
 
         except Exception as e:
-            print(f"Error extracting description: {str(e)}")
+            logging.error(f"Error extracting description: {str(e)}")
             return "Description not available"
 
 
@@ -114,16 +134,15 @@ def main():
 
     parser = argparse.ArgumentParser(description="Stanford TechFinder Scraper")
     parser.add_argument("output_file", help="Path to save the output CSV file")
+    parser.add_argument("--limit", type=int, default=133, help="Number of pages to scrape")
     args = parser.parse_args()
 
     print("Starting Stanford TechFinder scraping process...")
-    limit = 133 # Number of pages to scrape
-    output_file = args.output_file
     
     with StanfordScraper() as scraper:
-        scraper.scrape(limit=limit, output_file=output_file)
+        scraper.scrape(limit=args.limit, output_file=args.output_file)
     
-    print(f"Data saved to {output_file}")
+    print(f"Data saved to {args.output_file}")
 
 
 if __name__ == "__main__":
