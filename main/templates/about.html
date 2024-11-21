@@ -140,12 +140,12 @@
 </head>
 <body>
     <header class="nav-header">
-        <a href="{{ url_for('home') }}" class="logo-container">
+        <a href="{{ url_for('home.home') }}" class="logo-container">
             <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Incepta Logo">
             <span class="logo-text">Incepta</span>
             <span class="beta-tag">BETA</span>
         </a>
-        <a href="{{ url_for('about') }}" class="about-link">About</a>
+        <a href="{{ url_for('about.about') }}" class="about-link">About</a>
     </header>
 
     <div class="container">
