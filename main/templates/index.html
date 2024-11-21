@@ -210,13 +210,6 @@
             box-shadow: 0 8px 12px -1px rgba(0, 0, 0, 0.15);
         }
 
-        .result .score {
-            color: #6366f1;
-            font-size: 0.9rem;
-            font-weight: 600;
-            margin-bottom: 0.5rem;
-        }
-
         .result .title {
             font-size: 1.25rem;
             font-weight: 600;
@@ -254,6 +247,28 @@
         #query-input::placeholder {
             color: #9CA3AF;  /* Lighter gray color */
             opacity: 0.8;    /* Makes it even lighter */
+        }
+
+        .metadata {
+            margin: 1rem 0;
+            padding: 0.75rem;
+            background: #f9fafb;
+            border-radius: 8px;
+        }
+
+        .metadata-item {
+            margin: 0.5rem 0;
+            color: #4b5563;
+            font-size: 0.9rem;
+        }
+
+        .metadata-item a {
+            color: #6366f1;
+            text-decoration: none;
+        }
+
+        .metadata-item a:hover {
+            text-decoration: underline;
         }
     </style>
 </head>
@@ -410,17 +425,40 @@
                 success: function(results) {
                     $('#results').empty();
                     results.forEach(result => {
-                        $('#results').append(`
+                        let resultHtml = `
                             <div class="result">
-                                <div class="score">Relevance Score: ${result.score}</div>
-                                <div class="title">${result.title}</div>
-                                <div class="text">${result.text
-                                    .trim()
-                                    .replace(/\s*\n\s*\n\s*/g, '\n\n')
-                                    .replace(/\n/g, '<br>')}</div>
+                                <div class="title">${result.title}</div>`;
+
+                        if (index === 'stanford tech') {
+                            // Tech transfer template
+                            resultHtml += `
+                                <div class="metadata">
+                                    ${result.metadata.university ? `<div class="metadata-item">University: ${result.metadata.university}</div>` : ''}
+                                    ${result.metadata.number ? `<div class="metadata-item">Number: ${result.metadata.number}</div>` : ''}
+                                    ${result.metadata.patents ? `<div class="metadata-item">Patents: ${result.metadata.patents}</div>` : ''}
+                                    ${result.metadata.link ? `<div class="metadata-item">Link: <a href="${result.metadata.link.slice(0, -2)}" target="_blank">View Details</a></div>` : ''}
+                                </div>`;
+                        } else {
+                            // Grants template
+                            resultHtml += `
+                                <div class="metadata">
+                                    ${result.metadata.number ? `<div class="metadata-item">Number: ${result.metadata.number}</div>` : ''}
+                                    ${result.metadata.agency ? `<div class="metadata-item">Agency: ${result.metadata.agency}</div>` : ''}
+                                    ${result.metadata.category ? `<div class="metadata-item">Category: ${result.metadata.category}</div>` : ''}
+                                    ${result.metadata.status ? `<div class="metadata-item">Status: ${result.metadata.status}</div>` : ''}
+                                    ${result.metadata.posted_date ? `<div class="metadata-item">Posted: ${result.metadata.posted_date}</div>` : ''}
+                                    ${result.metadata.deadline ? `<div class="metadata-item">Deadline: ${result.metadata.deadline}</div>` : ''}
+                                    ${result.metadata.total_funding ? `<div class="metadata-item">Total Funding: ${result.metadata.total_funding}</div>` : ''}
+                                    ${result.metadata.link ? `<div class="metadata-item">Link: <a href="${result.metadata.link.slice(0, -2)}" target="_blank">View Details</a></div>` : ''}
+                                </div>`;
+                        }
+
+                        resultHtml += `
+                                <div class="text">${result.text}</div>
                                 <div class="expand-indicator">Click to expand</div>
-                            </div>
-                        `);
+                            </div>`;
+
+                        $('#results').append(resultHtml);
                     });
 
                     // Add click handler for expanding/collapsing

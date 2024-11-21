@@ -3,7 +3,7 @@ from main import create_app
 from main.services.search_service import SemanticSearch
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description="Web App for Semantic Search")
+    parser = argparse.ArgumentParser(description="Web App for Tech and Grants Search")
     parser.add_argument("--pinecone_api_key_path", type=str,
                         help="Path to the Pinecone API key file", default="/Users/andre/startup/pinecone_api_key.txt")
     parser.add_argument("--openai_api_key_path", type=str,

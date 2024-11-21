@@ -20,7 +20,7 @@ nltk.download('punkt')
 class SemanticSearch:
     def __init__(self, index_name="stanford tech", top_k=10, pinecone_api_key_path=None, openai_api_key_path=None):
         self.index_aliases = {
-            "stanford tech": "stanford-techfinder-133-v1",
+            "stanford tech": "tech-2024-11-21",
             "grants sbir": "grants-2024-11-21"
         }
         PINECONE_API_KEY = open(pinecone_api_key_path, "r").read().strip() if pinecone_api_key_path else os.getenv('PINECONE_API_KEY')
@@ -123,7 +123,7 @@ class SearchGUI:
         self.results_text.delete(1.0, tk.END)
         for match in results:
             score = match['relevance_score']
-            full_text = match['metadata']['text']#.replace('\n', ' ')  # Remove newlines from full text
+            full_text = match['metadata']['text']
             title = full_text.split('.')[0]
             explanation = match['explanation']
             

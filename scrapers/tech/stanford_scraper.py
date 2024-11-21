@@ -1,14 +1,19 @@
-from Incepta_backend.scrapers.tech.base_scraper import BaseScraper
+from .base_async_scraper import BaseScraper
 from bs4 import BeautifulSoup
 import time
-from typing import List, Dict
+from typing import List, Dict, Optional
 import logging
+import aiohttp
+import asyncio
+from aiohttp import ClientSession
+from async_timeout import timeout
+from ratelimit import limits, sleep_and_retry
 
 class StanfordScraper(BaseScraper):
     """Scraper for Stanford TechFinder website"""
 
     def __init__(self):
-        fieldnames = ['university', 'title', 'description', 'link']
+        fieldnames = ["university", "title", "number", "patent", "link", "description"]
         headers = {
             'User-Agent': 'StanfordScraper/1.0 (research@joinincepta.com)'
         }
@@ -18,23 +23,23 @@ class StanfordScraper(BaseScraper):
             headers=headers
         )
         self.university_name = "Stanford University"
+        self.rate_limit = 10  # requests per second
 
-    def get_page_soup(self, page_number: int) -> BeautifulSoup:
+    async def get_page_soup(self, session: ClientSession, page_number: int) -> BeautifulSoup:
         """
-        Fetch and parse HTML content from a single page.
+        Fetch and parse HTML content from a single page, given a page number
 
         Args:
+            session (ClientSession): The HTTP session to use for requests.
             page_number (int): The page number to fetch.
 
         Returns:
             BeautifulSoup: Parsed HTML content of the page.
         """
         url = f"{self.base_url}?page={page_number}"
-        response = self.session.get(url)
-        response.raise_for_status()  # Raise exception for bad status codes
-        soup = BeautifulSoup(response.content, 'html.parser')
-        time.sleep(1)  # Be polite and avoid overloading the server
-        return soup
+        async with session.get(url) as response:
+            content = await response.text()
+            return BeautifulSoup(content, 'html.parser')
 
     def get_items_from_page(self, soup: BeautifulSoup) -> List[Dict[str, str]]:
         """
@@ -58,23 +63,36 @@ class StanfordScraper(BaseScraper):
                 })
         return items
 
-    def get_item_details(self, link: str) -> Dict[str, str]:
+    async def get_item_details(self, session: ClientSession, link: str) -> Dict[str, str]:
         """
         Get detailed information for a single item.
 
         Args:
+            session (ClientSession): The HTTP session to use for requests.
             link (str): URL of the item's page.
 
         Returns:
-            Dict[str, str]: Dictionary containing the item's description.
+            Dict[str, str]: Dictionary containing the item's details.
         """
-        response = self.session.get(link)
-        response.raise_for_status()
-        soup = BeautifulSoup(response.content, 'html.parser')
-        time.sleep(0.5)  # Increased delay to be more conservative
-        
-        description = self.get_description(soup)
-        return {'description': description}
+        async with session.get(link) as response:
+            content = await response.text()
+            soup = BeautifulSoup(content, 'html.parser')
+            await asyncio.sleep(0.1)
+            
+            number = soup.find('div', class_='node__eyebrow docket__eyebrow').text.strip()
+            patent_header = soup.find('h2', string='Patents')
+            if patent_header and patent_header.find_next('ul'):
+                patents = [li.get_text().strip() for li in patent_header.find_next('ul').find_all('li')]
+                patents = ", ".join([x.replace('\n', ' ') for x in patents])
+            else:
+                patents = None
+            description = self.get_description(soup)
+            
+            return {
+                'number': clean_text(number),
+                'patent': clean_text(patents),
+                'description': clean_text(description)
+            }
 
     def get_description(self, subpage_soup: BeautifulSoup) -> str:
         """
@@ -88,13 +106,13 @@ class StanfordScraper(BaseScraper):
         """
         try:
             # Get applications
-            applications_header = subpage_soup.find('h2', string="Applications")
+            applications_header = subpage_soup.find('h2', string='Applications')
             applications = []
             if applications_header and applications_header.find_next('ul'):
                 applications = [li.get_text().strip() for li in applications_header.find_next('ul').find_all('li')]
 
             # Get advantages
-            advantages_header = subpage_soup.find('h2', string="Advantages")
+            advantages_header = subpage_soup.find('h2', string='Advantages')
             advantages = []
             if advantages_header and advantages_header.find_next('ul'):
                 advantages = [li.get_text().strip() for li in advantages_header.find_next('ul').find_all('li')]
@@ -109,41 +127,48 @@ class StanfordScraper(BaseScraper):
                 for para in description_div.find_all('p')
                 if para.get_text().strip()
             ]
-            full_description = " ".join(descriptions)
+            full_description = "\n".join(descriptions)
 
             # Construct the final paragraph
             parts = [full_description]
             if applications:
-                parts.append(f"Applications include {', '.join(applications)}.")
+                parts.append(f'Applications: {", ".join(applications)}.')
             if advantages:
-                parts.append(f"Advantages of the device are {', '.join(advantages)}.")
+                parts.append(f'Advantages: {", ".join(advantages)}.')
 
-            full_paragraph = " ".join(parts)
+            full_paragraph = "\n\n".join(parts)
 
-            # Remove any newlines and extra spaces
-            return ' '.join(full_paragraph.replace('\n', ' ').split())
+            return full_paragraph
 
         except Exception as e:
             logging.error(f"Error extracting description: {str(e)}")
             return "Description not available"
 
+    async def scrape(self, limit: int = None, output_file: Optional[str] = None, max_concurrent: int = 5) -> List[Dict[str, str]]:
+        # Your Stanford-specific scraping implementation
+        return await super().scrape(limit=limit, output_file=output_file, max_concurrent=max_concurrent)
 
-def main():
+
+def clean_text(text):
+    """Clean text by removing inconsistent quotes and standardizing format"""
+    if not isinstance(text, str):
+        return text
+    # Replace curly/smart quotes with straight quotes
+    text = text.replace('"', '"').replace('"', '"')
+    # Escape any remaining double quotes
+    text = text.replace('"', '""')
+    # Replace newlines with \n literal
+    text = text.replace('\n', '\\n').replace('\r', '')
+    # Remove any null bytes or other problematic characters
+    text = text.replace('\x00', '')
+    return text
+
+async def main():
     """Main function to run the scraper"""
-    import argparse
-
-    parser = argparse.ArgumentParser(description="Stanford TechFinder Scraper")
-    parser.add_argument("output_file", help="Path to save the output CSV file")
-    parser.add_argument("--limit", type=int, default=133, help="Number of pages to scrape")
-    args = parser.parse_args()
-
     print("Starting Stanford TechFinder scraping process...")
     
-    with StanfordScraper() as scraper:
-        scraper.scrape(limit=args.limit, output_file=args.output_file)
-    
-    print(f"Data saved to {args.output_file}")
-
+    async with StanfordScraper() as scraper:
+        await scraper.scrape(output_file='data/tech/stanford_2024_11_21.csv')
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())

@@ -1,6 +1,6 @@
 from typing import List, Dict
 from bs4 import BeautifulSoup
-from main.scrapers.base_scraper import BaseScraper
+from Incepta_backend.scrapers.tech.base_scraper import BaseScraper
 
 class TemplateScraper(BaseScraper):
     def __init__(self):

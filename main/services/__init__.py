@@ -1,4 +1,4 @@
-from .embeddings_service import EmbeddingsGenerator
+from .embedding_service import EmbeddingsGenerator
 from .search_service import SemanticSearch
 
 __all__ = [

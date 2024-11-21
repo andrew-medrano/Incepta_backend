@@ -1,4 +1,4 @@
-from .base_scraper import BaseScraper
+from .base_async_scraper import BaseScraper
 
 __all__ = [
     'BaseScraper'
