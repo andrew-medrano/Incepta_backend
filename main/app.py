@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request, jsonify
-from semantic_llm_search import SemanticSearch
+from services.search_service import SemanticSearch
 import argparse
 
 app = Flask(__name__)
@@ -9,7 +9,7 @@ ss = None  # We'll initialize this in the main block
 
 @app.route('/')
 def home():
-    return render_template('index_2.html')
+    return render_template('index.html')
 
 @app.route('/search', methods=['POST'])
 def search():
@@ -36,7 +36,7 @@ def search():
                 'score': float(match.get('relevance_score', 0)),  # Convert to float
                 'title': str(title),  # Convert to string
                 'text': str(display_text),  # Convert to string
-                'explanation': str(match.get('explanation', ''))  # Convert to string, use empty string if missing
+                # 'explanation': str(match.get('explanation', ''))  # Convert to string, use empty string if missing
             }
             formatted_results.append(formatted_result)
         except Exception as e:

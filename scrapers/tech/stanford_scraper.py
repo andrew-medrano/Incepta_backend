@@ -1,4 +1,4 @@
-from base_scraper import BaseScraper
+from Incepta_backend.scrapers.tech.base_scraper import BaseScraper
 from bs4 import BeautifulSoup
 import time
 from typing import List, Dict

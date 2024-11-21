@@ -21,7 +21,7 @@ class SemanticSearch:
     def __init__(self, index_name="stanford tech", top_k=10, pinecone_api_key_path=None, openai_api_key_path=None):
         self.index_aliases = {
             "stanford tech": "stanford-techfinder-133-v1",
-            "grants sbir": "grants-sbir-2000-v1"
+            "grants sbir": "grants-2024-11-21"
         }
         PINECONE_API_KEY = open(pinecone_api_key_path, "r").read().strip() if pinecone_api_key_path else os.getenv('PINECONE_API_KEY')
         self.pc = Pinecone(api_key=PINECONE_API_KEY)
@@ -32,10 +32,10 @@ class SemanticSearch:
         # Load the sentence embedding model for explanation generation
         self.sentence_embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
         
-        # Add OpenAI client initialization
-        self.MODEL = "gpt-4o-mini"
-        OPENAI_API_KEY = open(openai_api_key_path, "r").read().strip() if openai_api_key_path else os.getenv('OPENAI_API_KEY')
-        self.client = AsyncOpenAI(api_key=OPENAI_API_KEY)
+        # Comment out or remove OpenAI initialization
+        # self.MODEL = "gpt-4o-mini"
+        # OPENAI_API_KEY = open(openai_api_key_path, "r").read().strip() if openai_api_key_path else os.getenv('OPENAI_API_KEY')
+        # self.client = AsyncOpenAI(api_key=OPENAI_API_KEY)
 
     def set_index(self, index_name):
         actual_index_name = self.index_aliases.get(index_name, index_name)
@@ -72,39 +72,11 @@ class SemanticSearch:
         sorted_matches = sorted(results['matches'], key=lambda x: x['relevance_score'], reverse=True)
         # Select top_k results
         top_matches = sorted_matches[:self.top_k]
-        # Generate explanations in parallel
-        explanation_tasks = []
+        # Instead of real explanations, add placeholder or remove entirely
         for match in top_matches:
-            document_text = match['metadata']['text']
-            task = self.generate_explanation(query, document_text)
-            explanation_tasks.append(task)
-        
-        # Wait for all explanations to complete
-        explanations = await asyncio.gather(*explanation_tasks)
-        
-        # Attach explanations to matches
-        for match, explanation in zip(top_matches, explanations):
-            match['explanation'] = explanation
+            match['explanation'] = "LLM summarization temporarily disabled"
             
         return top_matches
-
-    async def generate_explanation(self, query, document_text):
-        # Create a prompt for the LLM
-        prompt = f"""Given the search query: "{query}"
-        And this document excerpt: "{document_text}"
-        
-        Provide a brief (1-2 sentences) explanation of why this document is relevant to the query.
-        Focus on the specific aspects that make it a good match."""
-
-        response = await self.client.chat.completions.create(
-            model=self.MODEL,
-            messages=[
-                {"role": "system", "content": "You are a helpful assistant that very briefly explains document relevance. Be concise and don't explain anything that is redundant or obvious. Start with 'This document discusses', and jump directly into explanation."},
-                {"role": "user", "content": prompt}
-            ]
-        )
-        
-        return response.choices[0].message.content.strip()
 
     def search_sync(self, query):
         """Synchronous wrapper for the async search method"""

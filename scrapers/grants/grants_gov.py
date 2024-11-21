@@ -1,5 +1,4 @@
 import pandas as pd
-import re
 import urllib3
 from selenium import webdriver
 from selenium.webdriver.common.by import By
