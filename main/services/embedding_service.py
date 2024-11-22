@@ -3,6 +3,7 @@ from pinecone import Pinecone, ServerlessSpec
 import time
 import os
 from tqdm import tqdm
+from main.constants.categories import CATEGORIES
 
 class EmbeddingsGenerator:
     def __init__(self, data_path, index_name):
@@ -10,11 +11,7 @@ class EmbeddingsGenerator:
         self.index_name = index_name
         self.data_path = data_path
         self.formatted_data = None
-        self.categories = [
-            "Communications", "Materials", "Software", 
-            "Medical", "Military", "Energy", "Electronics", 
-            "Sensors", "Environmental"
-        ]
+        self.categories = CATEGORIES
         self.category_embeddings = None
 
     def setup(self):

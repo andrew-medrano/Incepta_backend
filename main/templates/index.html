@@ -24,6 +24,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            position: relative;
         }
 
         .logo-container {
@@ -59,10 +60,12 @@
         }
 
         .container {
-            max-width: 56rem;
+            max-width: 95rem;
             margin: 0 auto;
-            padding: 4rem 1rem;
+            margin-top: -4rem;
+            padding: 2rem 1rem;
             text-align: center;
+            position: relative;
         }
 
         h1 {
@@ -73,6 +76,7 @@
             background-clip: text;
             color: transparent;
             margin-bottom: 1.5rem;
+            margin-top: -1rem;
             max-width: 45rem;
             margin-left: auto;
             margin-right: auto;
@@ -306,6 +310,81 @@
         .link:hover {
             text-decoration: underline;
         }
+
+        .category-filter {
+            margin: 1rem auto;
+            max-width: 32rem;
+        }
+
+        #category-select {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid #ddd6fe;
+            border-radius: 8px;
+            background-color: white;
+            color: #4B5563;
+            font-size: 0.875rem;
+        }
+
+        .category-sidebar {
+            position: absolute;
+            right: calc(100% - 250px);
+            top: 50vh;
+            transform: translateY(-50%);
+            padding: 1.5rem;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+            width: 160px;
+            z-index: 10;
+        }
+
+        .category-title {
+            font-weight: 700;
+            color: #4B5563;
+            margin-bottom: 1rem;
+            font-size: 1.25rem;
+            padding-bottom: 1rem;
+            border-bottom: 5px solid #ddd;
+        }
+
+        .category-item {
+            display: flex;
+            align-items: center;
+            padding: 0.5rem 0.75rem;
+            margin: 0.25rem 0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: #4B5563;
+            font-weight: 500;
+        }
+
+        .category-item:hover {
+            background: #f3f4f6;
+            color: #9333ea;
+        }
+
+        .category-item.active {
+            background: #f3f4f6;
+            color: #9333ea;
+        }
+
+        /* Adjust main container to account for sidebar */
+        .container {
+            max-width: 95rem;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+            text-align: center;
+            position: relative;
+        }
+
+        /* Adjust results container */
+        #results {
+            margin-left: auto;
+            margin-right: auto;
+            max-width: 48rem;
+        }
     </style>
 </head>
 <body>
@@ -332,6 +411,20 @@
                     <path d="m21 21-4.3-4.3"></path>
                 </svg>
             </button>
+        </div>
+
+        <div class="category-sidebar">
+            <div class="category-title">Filters</div>
+            <div class="category-item" data-category="">All Categories</div>
+            <div class="category-item" data-category="Communications">Communications</div>
+            <div class="category-item" data-category="Materials">Materials</div>
+            <div class="category-item" data-category="Software">Software</div>
+            <div class="category-item" data-category="Medical">Medical</div>
+            <div class="category-item" data-category="Military">Military</div>
+            <div class="category-item" data-category="Energy">Energy</div>
+            <div class="category-item" data-category="Electronics">Electronics</div>
+            <div class="category-item" data-category="Sensors">Sensors</div>
+            <div class="category-item" data-category="Environmental">Environmental</div>
         </div>
 
         <div class="info-text">
@@ -447,8 +540,8 @@
             }
         }
 
-        function performSearch() {
-            const query = $('#query-input').val();
+        function performSearch(customQuery = null, category = null) {
+            const query = customQuery || $('#query-input').val() || 'default';  // Use 'default' here
             const index = $('.toggle-button.active').data('index');
 
             setLoading(true);
@@ -457,7 +550,11 @@
                 url: '/search',
                 method: 'POST',
                 contentType: 'application/json',
-                data: JSON.stringify({ query: query, index: index }),
+                data: JSON.stringify({ 
+                    query: query, 
+                    index: index,
+                    categories: category ? [category] : []
+                }),
                 success: function(results) {
                     $('#results').empty();
                     results.forEach(result => {
@@ -526,6 +623,42 @@
             if (e.which == 13) {  // Enter key
                 performSearch();
             }
+        });
+
+        const categories = JSON.parse('{{ categories|tojson|safe }}');
+
+        function updateCategoryOptions() {
+            const select = $('#category-select');
+            select.empty();
+            select.append('<option value="">All Categories</option>');
+            
+            categories.forEach(category => {
+                select.append(`<option value="${category}">${category}</option>`);
+            });
+        }
+
+        // No need to update categories on toggle anymore
+        $('.toggle-button').click(function() {
+            $('.toggle-button').removeClass('active');
+            $(this).addClass('active');
+            // ... rest of toggle code ...
+        });
+
+        // Initial category population
+        $(document).ready(function() {
+            updateCategoryOptions();
+        });
+
+        $(document).ready(function() {
+            $('.category-item').click(function() {
+                $('.category-item').removeClass('active');
+                $(this).addClass('active');
+                
+                const selectedCategory = $(this).data('category');
+                const query = $('#query-input').val() || 'default';
+                
+                performSearch(query, selectedCategory);
+            });
         });
     </script>
 </body>
