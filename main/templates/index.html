@@ -270,6 +270,42 @@
         .metadata-item a:hover {
             text-decoration: underline;
         }
+
+        .categories {
+            margin: 10px 0;
+        }
+
+        .category-label {
+            font-weight: bold;
+            margin-right: 10px;
+        }
+
+        .category-tag {
+            display: inline-block;
+            background-color: #e0e0e0;
+            padding: 4px 8px;
+            border-radius: 12px;
+            margin: 2px;
+            font-size: 0.9em;
+        }
+
+        .metadata {
+            margin: 10px 0;
+            padding: 10px;
+            background-color: #f5f5f5;
+            border-radius: 4px;
+        }
+
+        .link {
+            display: inline-block;
+            margin-top: 10px;
+            color: #007bff;
+            text-decoration: none;
+        }
+
+        .link:hover {
+            text-decoration: underline;
+        }
     </style>
 </head>
 <body>
@@ -303,8 +339,8 @@
         </div>
 
         <div class="toggle-container">
-            <button class="toggle-button active" data-index="stanford tech">Patents</button>
-            <button class="toggle-button" data-index="grants sbir">Grants</button>
+            <button class="toggle-button active" data-index="tech">Patents</button>
+            <button class="toggle-button" data-index="grants">Grants</button>
         </div>
 
         <div id="loading-spinner" class="loading-spinner"></div>
@@ -333,7 +369,7 @@
         let typewriterTimeout;
 
         function typeWriter() {
-            const examples = $('.toggle-button.active').data('index') === 'stanford tech' 
+            const examples = $('.toggle-button.active').data('index') === 'tech' 
                 ? patentExamples 
                 : grantExamples;
             
@@ -429,32 +465,35 @@
                             <div class="result">
                                 <div class="title">${result.title}</div>`;
 
-                        if (index === 'stanford tech') {
+                        if (index === 'tech') {
                             // Tech transfer template
                             resultHtml += `
                                 <div class="metadata">
                                     ${result.metadata.university ? `<div class="metadata-item">University: ${result.metadata.university}</div>` : ''}
                                     ${result.metadata.number ? `<div class="metadata-item">Number: ${result.metadata.number}</div>` : ''}
-                                    ${result.metadata.patents ? `<div class="metadata-item">Patents: ${result.metadata.patents}</div>` : ''}
-                                    ${result.metadata.link ? `<div class="metadata-item">Link: <a href="${result.metadata.link.slice(0, -2)}" target="_blank">View Details</a></div>` : ''}
+                                    ${result.metadata.patent ? `<div class="metadata-item">Patent: ${result.metadata.patent}</div>` : ''}
+                                    ${result.metadata.link ? `<div class="metadata-item">Link: <a href="${result.metadata.link}" target="_blank">View Details</a></div>` : ''}
+                                    ${result.metadata.category && result.metadata.category.length > 0 ? 
+                                        `<div class="metadata-item">Categories: ${result.metadata.category.join(', ')}</div>` : ''}
                                 </div>`;
                         } else {
                             // Grants template
                             resultHtml += `
                                 <div class="metadata">
-                                    ${result.metadata.number ? `<div class="metadata-item">Number: ${result.metadata.number}</div>` : ''}
-                                    ${result.metadata.agency ? `<div class="metadata-item">Agency: ${result.metadata.agency}</div>` : ''}
-                                    ${result.metadata.category ? `<div class="metadata-item">Category: ${result.metadata.category}</div>` : ''}
+                                    ${result.metadata.opportunity_number ? `<div class="metadata-item">Number: ${result.metadata.opportunity_number}</div>` : ''}
+                                    ${result.metadata.agency_code ? `<div class="metadata-item">Agency: ${result.metadata.agency_code}</div>` : ''}
                                     ${result.metadata.status ? `<div class="metadata-item">Status: ${result.metadata.status}</div>` : ''}
                                     ${result.metadata.posted_date ? `<div class="metadata-item">Posted: ${result.metadata.posted_date}</div>` : ''}
-                                    ${result.metadata.deadline ? `<div class="metadata-item">Deadline: ${result.metadata.deadline}</div>` : ''}
+                                    ${result.metadata.application_deadline ? `<div class="metadata-item">Deadline: ${result.metadata.application_deadline}</div>` : ''}
                                     ${result.metadata.total_funding ? `<div class="metadata-item">Total Funding: ${result.metadata.total_funding}</div>` : ''}
-                                    ${result.metadata.link ? `<div class="metadata-item">Link: <a href="${result.metadata.link.slice(0, -2)}" target="_blank">View Details</a></div>` : ''}
+                                    ${result.metadata.link ? `<div class="metadata-item">Link: <a href="${result.metadata.link}" target="_blank">View Details</a></div>` : ''}
+                                    ${result.metadata.category && result.metadata.category.length > 0 ? 
+                                        `<div class="metadata-item">Categories: ${result.metadata.category.join(', ')}</div>` : ''}
                                 </div>`;
                         }
 
                         resultHtml += `
-                                <div class="text">${result.text}</div>
+                                <div class="text">${result.description}</div>
                                 <div class="expand-indicator">Click to expand</div>
                             </div>`;
 

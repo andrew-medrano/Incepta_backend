@@ -1,76 +1,50 @@
 from flask import Blueprint, request, jsonify, current_app
+from main.services.search_service import SemanticSearch
 
 search_bp = Blueprint('search', __name__)
 
 @search_bp.route('/search', methods=['POST'])
 def search():
     query = request.json.get('query')
-    index_name = request.json.get('index', 'stanford tech')
+    index_name = request.json.get('index', 'tech')
+    category_filter = request.json.get('categories')
 
-    # Access SemanticSearch from the app's config
     ss = current_app.config['SEMANTIC_SEARCH']
-
-    # Update index if needed
     if index_name != ss.index_name:
         ss.set_index(index_name)
 
-    # Use search_sync instead of search
-    results = ss.search_sync(query)
+    results = ss.search_sync(query, category_filter=category_filter)
 
-    # Format results
     formatted_results = []
     for match in results:
         try:
-            full_text = match['metadata']['text'].replace('\\n', '<br>')
-            
-            # Split on first period to get title
-            title, *rest_of_text = full_text.split('. ', 1)
-            
-            # Initialize common fields
+            metadata = match['metadata']
             formatted_result = {
                 'score': float(match.get('relevance_score', 0)),
-                'title': str(title),
-                'text': '',
+                'title': metadata.get('title', ''),
+                'description': metadata.get('description', '').replace('\\n', '<br>').encode('ascii', 'ignore').decode(),
                 'metadata': {}
             }
             
-            # Extract metadata based on index type
-            if index_name == 'stanford tech':
-                # Parse tech transfer data
-                text_parts = rest_of_text[0].split('\n') if rest_of_text else []
-                for part in text_parts:
-                    if part.startswith('University: '):
-                        formatted_result['metadata']['university'] = part.replace('University: ', '').rstrip('.')
-                    elif part.startswith('Number: '):
-                        formatted_result['metadata']['number'] = part.replace('Number: ', '').rstrip('.')
-                    elif part.startswith('Patents: '):
-                        formatted_result['metadata']['patents'] = part.replace('Patents: ', '').rstrip('.')
-                    elif part.startswith('Link: '):
-                        formatted_result['metadata']['link'] = part.replace('Link: ', '').rstrip('.')
-                    else:
-                        formatted_result['text'] = formatted_result['text'] + part  # This should be the description
-                        
-            else:  # grants data
-                text_parts = rest_of_text[0].split('\n') if rest_of_text else []
-                for part in text_parts:
-                    if part.startswith('Number: '):
-                        formatted_result['metadata']['number'] = part.replace('Number: ', '').rstrip('.')
-                    elif part.startswith('Agency: '):
-                        formatted_result['metadata']['agency'] = part.replace('Agency: ', '').rstrip('.')
-                    elif part.startswith('Category: '):
-                        formatted_result['metadata']['category'] = part.replace('Category: ', '').rstrip('.')
-                    elif part.startswith('Status: '):
-                        formatted_result['metadata']['status'] = part.replace('Status: ', '').rstrip('.')
-                    elif part.startswith('Posted: '):
-                        formatted_result['metadata']['posted_date'] = part.replace('Posted: ', '').rstrip('.')
-                    elif part.startswith('Application Deadline: '):
-                        formatted_result['metadata']['deadline'] = part.replace('Application Deadline: ', '').rstrip('.')
-                    elif part.startswith('Total Funding: '):
-                        formatted_result['metadata']['total_funding'] = part.replace('Total Funding: ', '').rstrip('.')
-                    elif part.startswith('Link: '):
-                        formatted_result['metadata']['link'] = part.replace('Link: ', '').rstrip('.')
-                    elif not part.startswith(('Last Updated:', 'Closes:', 'Award Ceiling:', 'Award Floor:')):
-                        formatted_result['text'] = formatted_result['text'] + part  # This should be the description
+            if index_name == 'tech':
+                formatted_result['metadata'].update({
+                    'university': metadata.get('university', ''),
+                    'number': metadata.get('number', ''),
+                    'patent': metadata.get('patent', ''),
+                    'link': metadata.get('link', ''),
+                    'category': metadata.get('category', [])
+                })
+            else:
+                formatted_result['metadata'].update({
+                    'opportunity_number': metadata.get('opportunity_number', ''),
+                    'agency_code': metadata.get('agency_code', ''),
+                    'status': metadata.get('status', ''),
+                    'posted_date': metadata.get('posted_date', ''),
+                    'application_deadline': metadata.get('application_deadline', ''),
+                    'total_funding': metadata.get('total_funding', ''),
+                    'link': metadata.get('link', ''),
+                    'category': metadata.get('category', [])
+                })
 
             formatted_results.append(formatted_result)
         except Exception as e:
