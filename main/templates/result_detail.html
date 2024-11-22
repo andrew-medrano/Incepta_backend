@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ result.metadata.title }} - Incepta</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/logo.png') }}">
+    <style>
+        /* Add base styles from index.html */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(to bottom right, #faf5ff, #e0e7ff);
+            margin: 0;
+            min-height: 100vh;
+        }
+
+        /* Fix header styles to match exactly */
+        .nav-header {
+            padding: 0.75rem 2.75rem;
+            background: transparent;
+            box-shadow: none;
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 20;
+            backdrop-filter: blur(8px);
+            background-color: rgba(255, 255, 255, 0.8);
+        }
+
+        .nav-container {
+            max-width: 95rem;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+        }
+
+        /* Fix logo styles */
+        .logo-container {
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .logo-container img {
+            width: 48px;  /* Fixed from 80px to 48px */
+            height: 48px;
+            margin-right: 1rem;
+        }
+
+        .logo-text {
+            font-size: 1.875rem;
+            background: linear-gradient(to right, #9333ea, #4f46e5);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            font-weight: bold;
+        }
+
+        .beta-tag {
+            background: linear-gradient(to right, #9333ea, #4f46e5);
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            margin-left: 0.5rem;
+            font-weight: bold;
+        }
+
+        .about-link {
+            color: #666;
+            text-decoration: none;
+            font-size: 1.1rem;
+            transition: color 0.3s ease;
+            padding: 0.5rem 1rem;
+            line-height: 1;
+            display: flex;
+            align-items: center;
+        }
+
+        .about-link:hover {
+            color: #9333ea;
+        }
+
+        /* Detail specific styles */
+        .detail-container {
+            max-width: 48rem;
+            margin: 0 auto;
+            padding: 2rem;
+            padding-top: 8rem;
+        }
+        
+        .detail-header {
+            display: flex;
+            align-items: flex-start;
+            gap: 2rem;
+            margin-bottom: 2rem;
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        
+        .org-logo {
+            width: 48px;  /* Match result-logo size from index */
+            height: 48px;
+            object-fit: contain;
+            flex-shrink: 0;
+        }
+        
+        .header-content {
+            flex: 1;
+        }
+        
+        .header-content h1 {
+            margin: 0 0 1rem 0;
+            font-size: 1.25rem;  /* Match result-title size */
+            font-weight: 600;
+            color: #1f2937;
+        }
+        
+        .org-name {
+            font-size: 0.875rem;  /* Match result-org size */
+            color: #6b7280;
+            margin-bottom: 1rem;
+        }
+        
+        .metadata {
+            margin: 1rem 0;
+            padding: 0.75rem;
+            background: #f9fafb;
+            border-radius: 8px;
+        }
+        
+        .metadata-item {
+            margin: 0.5rem 0;
+            color: #4b5563;
+            font-size: 0.9rem;
+        }
+
+        .metadata-item a {
+            color: #6366f1;
+            text-decoration: none;
+        }
+
+        .metadata-item a:hover {
+            text-decoration: underline;
+        }
+        
+        .description {
+            background: white;
+            padding: 0rem 2rem 2rem 2rem;  /* top right bottom left */
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            line-height: 1.6;
+            color: #374151;
+            white-space: pre-line;
+        }
+
+        .back-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: #6366f1;
+            text-decoration: none;
+            margin-bottom: 1rem;
+            font-weight: 500;
+        }
+
+        .back-button:hover {
+            color: #4f46e5;
+        }
+    </style>
+</head>
+<body>
+    <header class="nav-header">
+        <div class="nav-container">
+            <a href="/" class="logo-container">
+                <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Incepta Logo">
+                <span class="logo-text">Incepta</span>
+                <span class="beta-tag">BETA</span>
+            </a>
+            <a href="{{ url_for('about.about') }}" class="about-link">About</a>
+        </div>
+    </header>
+    
+    <div class="detail-container">
+        <a href="/" class="back-button">← Back to Search</a>
+        
+        <div class="detail-header">
+            <img src="{{ url_for('static', filename=result.metadata.university_logo[7:] if index == 'tech' else result.metadata.agency_logo[7:]) }}" 
+                 alt="Organization logo" 
+                 class="org-logo">
+            <div class="header-content">
+                <h1>{{ result.metadata.title }}</h1>
+                <div class="org-name">
+                    {{ result.metadata.university if index == 'tech' else result.metadata.agency_name }}
+                </div>
+                
+                <div class="metadata">
+                    {% if result.metadata.category %}
+                        <div class="metadata-item">Categories: {{ result.metadata.category|join(', ') }}</div>
+                    {% endif %}
+                    {% if index == 'tech' %}
+                        <div class="metadata-item">{{ result.metadata.number }}</div>
+                        {% if result.metadata.patent %}
+                            <div class="metadata-item">Patents: {{ result.metadata.patent }}</div>
+                        {% endif %}
+                        {% if result.metadata.link %}
+                            <div class="metadata-item"><a href="{{ result.metadata.link }}" target="_blank">Original Source</a></div>
+                        {% endif %}
+                    {% else %}
+                        <div class="metadata-item">Opportunity Number: {{ result.metadata.opportunity_number }}</div>
+                        <div class="metadata-item">Status: {{ result.metadata.status }}</div>
+                        <div class="metadata-item">Posted Date: {{ result.metadata.posted_date }}</div>
+                        <div class="metadata-item">Last Updated: {{ result.metadata.last_updated_date }}</div>
+                        <div class="metadata-item">Close Date: {{ result.metadata.close_date }}</div>
+                        <div class="metadata-item">Application Deadline: {{ result.metadata.application_deadline }}</div>
+                        {% if result.metadata.total_funding %}
+                            <div class="metadata-item">Total Funding: ${{ result.metadata.total_funding }}</div>
+                        {% endif %}
+                        {% if result.metadata.award_ceiling %}
+                            <div class="metadata-item">Award Ceiling: ${{ result.metadata.award_ceiling }}</div>
+                        {% endif %}
+                        {% if result.metadata.award_floor %}
+                            <div class="metadata-item">Award Floor: ${{ result.metadata.award_floor }}</div>
+                        {% endif %}
+                        {% if result.metadata.link %}
+                            <div class="metadata-item">Grant Link: <a href="{{ result.metadata.link }}" target="_blank">View on Grants.gov</a></div>
+                        {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="description">
+            {{ result.metadata.description }}
+        </div>
+    </div>
+</body>
+</html>

@@ -216,6 +216,7 @@
             display: flex;
             align-items: center;
             gap: 1rem;
+            text-decoration: none;
         }
 
         .result-logo {
@@ -586,8 +587,31 @@
             }
         }
 
+        // Get query parameter from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const savedQuery = urlParams.get('q');
+        
+        // Restore previous search if exists
+        $(document).ready(function() {
+            if (savedQuery) {
+                $('#query-input').val(savedQuery);
+                const savedResults = JSON.parse(localStorage.getItem('searchResults') || '[]');
+                if (savedResults.length > 0) {
+                    displayResults(savedResults);
+                } else {
+                    performSearch(savedQuery);
+                }
+            }
+        });
+
         function performSearch(customQuery = null, category = null) {
-            const query = customQuery || $('#query-input').val() || 'default';  // Use 'default' here
+            const query = customQuery || $('#query-input').val() || 'default';
+            
+            // Update URL with search query
+            const newUrl = new URL(window.location);
+            newUrl.searchParams.set('q', query);
+            window.history.pushState({}, '', newUrl);
+
             const index = $('.toggle-button.active').data('index');
 
             setLoading(true);
@@ -602,34 +626,9 @@
                     categories: category ? [category] : []
                 }),
                 success: function(results) {
-                    $('#results').empty();
-                    results.forEach(result => {
-                        let orgName, orgLogo;
-                        if (index === 'tech') {
-                            orgName = result.metadata.university;
-                            orgLogo = result.metadata.university_logo;
-                        } else {
-                            orgName = result.metadata.agency_name;
-                            orgLogo = result.metadata.agency_logo;
-                        }
-
-                        let resultHtml = `
-                            <div class="result">
-                                <img src="${orgLogo}" alt="${orgName} logo" class="result-logo">
-                                <div class="result-content">
-                                    <div class="result-title">${result.title}</div>
-                                    <div class="result-org">${orgName}</div>
-                                </div>
-                            </div>`;
-                        $('#results').append(resultHtml);
-                    });
-
-                    // Add click handler for expanding/collapsing
-                    $('.result').click(function() {
-                        $(this).toggleClass('expanded');
-                        const indicator = $(this).find('.expand-indicator');
-                        indicator.text($(this).hasClass('expanded') ? 'Click to collapse' : 'Click to expand');
-                    });
+                    // Store results in localStorage
+                    localStorage.setItem('searchResults', JSON.stringify(results));
+                    displayResults(results);
                 },
                 error: function(xhr, status, error) {
                     $('#results').html(`
@@ -642,6 +641,32 @@
                 complete: function() {
                     setLoading(false);
                 }
+            });
+        }
+
+        // Separate display logic
+        function displayResults(results) {
+            $('#results').empty();
+            const index = $('.toggle-button.active').data('index');
+            results.forEach(result => {
+                let orgName, orgLogo;
+                if (index === 'tech') {
+                    orgName = result.metadata.university;
+                    orgLogo = result.metadata.university_logo;
+                } else {
+                    orgName = result.metadata.agency_name;
+                    orgLogo = result.metadata.agency_logo;
+                }
+
+                let resultHtml = `
+                    <a href="/result/${index}/${result.id}" class="result">
+                        <img src="${orgLogo}" alt="${orgName} logo" class="result-logo">
+                        <div class="result-content">
+                            <div class="result-title">${result.title}</div>
+                            <div class="result-org">${orgName}</div>
+                        </div>
+                    </a>`;
+                $('#results').append(resultHtml);
             });
         }
 

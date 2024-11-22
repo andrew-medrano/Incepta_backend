@@ -66,7 +66,12 @@ class SemanticSearch:
             filter=filter_dict if filter_dict else None
         )
 
-        # Extract documents using 'description' field instead of 'text'
+        # Extract documents and add IDs to matches
+        for match in results['matches']:
+            match['id'] = match['id']  # Ensure ID is included
+            match['metadata'] = match['metadata']
+        
+        # Extract document texts for re-ranking
         documents = [match['metadata']['description'] for match in results['matches']]
         
         # Pair the query with each document for re-ranking
@@ -91,6 +96,22 @@ class SemanticSearch:
         """Synchronous wrapper for the async search method"""
         return asyncio.run(self.search(query, category_filter=category_filter))
 
+    def get_by_id(self, id):
+        """Fetch a specific document by its ID"""
+        try:
+            response = self.index.fetch(ids=[id], namespace="ns1")
+            if not response or not response.get('vectors'):
+                return None
+            
+            vector_data = response['vectors'][id]
+            return {
+                'id': id,
+                'metadata': vector_data.metadata,
+                'score': 1.0  # Default score for direct fetches
+            }
+        except Exception as e:
+            print(f"Error fetching document: {e}")
+            return None
 
 if __name__ == "__main__":
     ss = SemanticSearch(index_name="tech", pinecone_api_key_path="/Users/andre/startup/pinecone_api_key.txt")
