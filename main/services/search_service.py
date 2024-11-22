@@ -14,7 +14,7 @@ import asyncio
 nltk.download('punkt')
 
 class SemanticSearch:
-    def __init__(self, index_name="tech", top_k=10, pinecone_api_key_path=None):
+    def __init__(self, index_name="tech", top_k=20, pinecone_api_key_path=None):
         self.index_aliases = {
             "tech": "tech-2024-11-21",
             "grants": "grants-2024-11-21"

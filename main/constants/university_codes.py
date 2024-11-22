@@ -9,7 +9,7 @@ UNIVERSITY_INFO = {
 
 # Helper function to get university info with defaults
 def get_university_info(code):
-    return UNIVERSITY_INFO.get(code.upper(), {
+    return UNIVERSITY_INFO.get(code, {
         'name': 'Unknown University',
         'logo': 'static/university_logos/default.png',
         'tech_transfer_office': 'Technology Transfer Office',
