@@ -10,6 +10,9 @@ from main.constants.metadata_fields import (
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+import os
+from dotenv import load_dotenv
+
 
 search_bp = Blueprint('search', __name__)
 
@@ -20,8 +23,8 @@ def search():
     category_filter = request.json.get('categories')
 
     ss = current_app.config['SEMANTIC_SEARCH']
-    if index_name != ss.index_name:
-        ss.set_index(index_name)
+    # if index_name != ss.index_name:
+    #     ss.set_index(index_name)
 
     results = ss.search_sync(query, category_filter=category_filter)
 
@@ -102,6 +105,8 @@ def result_detail(index, id):
 
 @search_bp.route('/submit-contact', methods=['POST'])
 def submit_contact():
+    load_dotenv()
+
     data = request.json
     
     # Create email content
@@ -122,9 +127,9 @@ def submit_contact():
     """
     
     # Email configuration
-    sender_email = "amedrano.az@gmail.com"  # Replace with your email
-    receiver_emails = ["amedrano.az@gmail.com", "amedrano.az@gmail.com"]  # Replace with your email
-    password = open("/Users/andre/startup/gmail_app_password.txt", "r").read()  # Replace with your email password or app-specific password
+    sender_email = os.getenv('SMTP_USERNAME')
+    receiver_emails = [os.getenv('SMTP_USERNAME')]
+    password = os.getenv('SMTP_PASSWORD')
     
     # Create message
     message = MIMEMultipart()
@@ -136,7 +141,7 @@ def submit_contact():
     
     try:
         # Create SMTP session
-        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+        with smtplib.SMTP_SSL("smtp.gmail.com", int(os.getenv('SMTP_PORT'))) as server:
             server.login(sender_email, password)
             server.send_message(message)
         

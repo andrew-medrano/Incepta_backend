@@ -9,19 +9,22 @@ from nltk.tokenize import sent_tokenize
 import nltk
 import os
 import asyncio
+from dotenv import load_dotenv
+from main.constants.pinecone_indexes import INDEX_ALIASES
 
 # Download NLTK data files (only need to run once)
 nltk.download('punkt')
 
 class SemanticSearch:
-    def __init__(self, index_name="tech", top_k=20, pinecone_api_key_path=None):
-        self.index_aliases = {
-            "tech": "tech-2024-11-21",
-            "grants": "grants-2024-11-21"
-        }
-        PINECONE_API_KEY = open(pinecone_api_key_path, "r").read().strip() if pinecone_api_key_path else os.getenv('PINECONE_API_KEY')
-        self.pc = Pinecone(api_key=PINECONE_API_KEY)
-        self.set_index(index_name)
+    def __init__(self, index_name='tech', top_k=20):
+        # Load environment variables
+        load_dotenv()
+        self.pc = Pinecone(api_key=os.getenv('PINECONE_API_KEY'))
+
+        self.index_aliases = INDEX_ALIASES
+        self.index_name = index_name
+        self.index = self.set_index(index_name)  # This line is fixed
+        
         self.top_k = top_k
         # Load the cross-encoder model for re-ranking
         self.cross_encoder = CrossEncoder('cross-encoder/ms-marco-MiniLM-L-6-v2')
@@ -31,7 +34,7 @@ class SemanticSearch:
     def set_index(self, index_name):
         actual_index_name = self.index_aliases.get(index_name, index_name)
         self.index = self.pc.Index(actual_index_name)
-        self.index_name = index_name
+        return self.index
 
     async def search(self, query, category_filter=None):
         """
