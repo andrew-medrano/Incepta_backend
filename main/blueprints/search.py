@@ -23,8 +23,8 @@ def search():
     category_filter = request.json.get('categories')
 
     ss = current_app.config['SEMANTIC_SEARCH']
-    # if index_name != ss.index_name:
-    #     ss.set_index(index_name)
+    if index_name != ss.index_name:
+        ss.set_index(index_name)
 
     results = ss.search_sync(query, category_filter=category_filter)
 

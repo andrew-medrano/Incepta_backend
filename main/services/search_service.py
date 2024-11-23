@@ -32,6 +32,7 @@ class SemanticSearch:
         self.sentence_embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
 
     def set_index(self, index_name):
+        self.index_name = index_name
         actual_index_name = self.index_aliases.get(index_name, index_name)
         self.index = self.pc.Index(actual_index_name)
         return self.index

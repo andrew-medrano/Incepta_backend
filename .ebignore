@@ -1,0 +1,22 @@
+# Development/Local files
+__pycache__/
+*.pyc
+.env
+.env.*
+*.txt
+!requirements.txt
+.git/
+.gitignore
+.DS_Store
+
+# Data and scraper files
+data/
+scrapers/
+*.csv
+*.json
+
+# Development notebooks
+*.ipynb
+
+# Tests
+tests/

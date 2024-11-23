@@ -9,6 +9,9 @@ from main.constants.metadata_fields import (
     GRANTS_METADATA_FIELDS,
     COMMON_METADATA_FIELDS
 )
+import dotenv
+
+dotenv.load_dotenv()
 
 class EmbeddingsGenerator:
     def __init__(self, data_path, index_name):
@@ -21,7 +24,7 @@ class EmbeddingsGenerator:
 
     def setup(self):
         print("Setting up Pinecone client...")
-        PINECONE_API_KEY = open("/Users/andre/startup/pinecone_api_key.txt", "r").read()
+        PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
         self.pc = Pinecone(api_key=PINECONE_API_KEY)
         self.category_embeddings = self.pc.inference.embed(
             model='multilingual-e5-large',
