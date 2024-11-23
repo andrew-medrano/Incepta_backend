@@ -31,21 +31,19 @@ def search():
             if index_name == 'tech':
                 uni_info = get_university_info(metadata.get('university', ''))
                 formatted_result['metadata'].update({
-                    'university': uni_info['name'],
-                    'university_logo': uni_info['logo'],
+                    'university': uni_info['name'] if uni_info else 'Unknown University',
+                    'university_logo': uni_info['logo'] if uni_info else '/static/images/default_university.png',
                 })
             else:
                 agency_code = metadata.get('agency_code', '').split('-')[0].strip()
                 agency_info = get_agency_info(agency_code)
                 formatted_result['metadata'].update({
-                    'agency_name': agency_info['name'],
-                    'agency_logo': agency_info['logo'],
+                    'agency_name': agency_info['name'] if agency_info else 'Unknown Agency',
+                    'agency_logo': agency_info['logo'] if agency_info else '/static/images/default_agency.png',
                 })
 
             formatted_results.append(formatted_result)
         except Exception as e:
-            print(f"Error processing match: {e}")
-            print(f"Match data: {match}")
             continue
 
     return jsonify(formatted_results)
@@ -73,6 +71,12 @@ def result_detail(index, id):
             'university_logo': uni_info['logo']
         })
     else:
+        # check if award_ceiling or award_floor actually contain numeric characters
+        if not result['metadata']['award_ceiling'].isdigit():
+            result['metadata']['award_ceiling'] = ''
+        if not result['metadata']['award_floor'].isdigit():
+            result['metadata']['award_floor'] = ''
+
         agency_code = result['metadata'].get('agency_code', '').split('-')[0].strip()
         agency_info = get_agency_info(agency_code)
         result['metadata'].update({

@@ -437,11 +437,11 @@
 <body>
     <header class="nav-header">
         <div class="nav-container">
-            <div class="logo-container">
+            <a href="/" class="logo-container">
                 <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Incepta Logo">
                 <span class="logo-text">Incepta</span>
                 <span class="beta-tag">BETA</span>
-            </div>
+            </a>
             <a href="{{ url_for('about.about') }}" class="about-link">About</a>
         </div>
     </header>
@@ -711,6 +711,109 @@
                 
                 performSearch(query, selectedCategory);
             });
+        });
+
+        // Update the document ready function
+        $(document).ready(function() {
+            // Only restore state if coming back from a result page
+            if (document.referrer.includes('/result/')) {
+                const previousState = JSON.parse(localStorage.getItem('searchState') || '{}');
+                
+                if (previousState.query) {
+                    $('#query-input').val(previousState.query);
+                    
+                    // Restore active index (Patents/Grants toggle)
+                    if (previousState.index) {
+                        $(`.toggle-button[data-index="${previousState.index}"]`).click();
+                    }
+                    
+                    // Restore active category
+                    if (previousState.category) {
+                        $(`.category-item[data-category="${previousState.category}"]`).addClass('active');
+                    }
+                    
+                    // Display saved results
+                    if (previousState.results && previousState.results.length > 0) {
+                        displayResults(previousState.results);
+                    }
+                }
+            } else {
+                // Clear search state if not coming from result page
+                localStorage.removeItem('searchState');
+            }
+        });
+
+        // Update logo click handler
+        $('.logo-container').click(function() {
+            localStorage.removeItem('searchState');
+            window.location.href = '/';
+        });
+
+        // Update performSearch function
+        function performSearch(customQuery = null, category = null) {
+            const query = customQuery || $('#query-input').val() || 'default';
+            const index = $('.toggle-button.active').data('index');
+            
+            // Save search state
+            const searchState = {
+                query: query,
+                index: index,
+                category: category
+            };
+            
+            // Update URL with search query
+            const newUrl = new URL(window.location);
+            newUrl.searchParams.set('q', query);
+            window.history.pushState(searchState, '', newUrl);
+
+            setLoading(true);
+
+            $.ajax({
+                url: '/search',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ 
+                    query: query, 
+                    index: index,
+                    categories: category ? [category] : []
+                }),
+                success: function(results) {
+                    // Store both results and search state
+                    searchState.results = results;
+                    localStorage.setItem('searchState', JSON.stringify(searchState));
+                    displayResults(results);
+                },
+                error: function(xhr, status, error) {
+                    $('#results').html(`
+                        <div class="result" style="color: red;">
+                            An error occurred while searching. Please try again.
+                        </div>
+                    `);
+                    console.error('Search error:', error);
+                },
+                complete: function() {
+                    setLoading(false);
+                }
+            });
+        }
+
+        // Update toggle button click handler
+        $('.toggle-button').click(function() {
+            $('.toggle-button').removeClass('active');
+            $(this).addClass('active');
+            
+            // Reset typewriter
+            currentIndex = 0;
+            charIndex = 0;
+            isDeleting = false;
+            typeWriter();
+            
+            // Perform search with current query if one exists
+            const query = $('#query-input').val();
+            if (query) {
+                const activeCategory = $('.category-item.active').data('category');
+                performSearch(query, activeCategory);
+            }
         });
     </script>
 </body>

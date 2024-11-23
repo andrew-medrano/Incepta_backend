@@ -1,6 +1,6 @@
 AGENCY_INFO = {
     'AC': {
-        'name': 'Appalachian Commission',
+        'name': 'AmeriCorps',
         'logo': 'static/grant_agency_logos/AC.png'
     },
     'DHS': {
@@ -84,7 +84,7 @@ AGENCY_INFO = {
         'logo': 'static/grant_agency_logos/PAMS.png'
     },
     'SCRC': {
-        'name': 'Supply Chain Resource Cooperative',
+        'name': 'Southeast Crescent Regional Commission',
         'logo': 'static/grant_agency_logos/SCRC.png'
     },
     'USAID': {

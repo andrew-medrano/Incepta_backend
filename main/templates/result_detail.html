@@ -185,7 +185,7 @@
     </header>
     
     <div class="detail-container">
-        <a href="/" class="back-button">← Back to Search</a>
+        <a href="javascript:history.back()" class="back-button">← Back to Search</a>
         
         <div class="detail-header">
             <img src="{{ url_for('static', filename=result.metadata.university_logo[7:] if index == 'tech' else result.metadata.agency_logo[7:]) }}" 
@@ -198,11 +198,13 @@
                 </div>
                 
                 <div class="metadata">
-                    {% if result.metadata.category %}
+                    {% if result.metadata.category and result.metadata.category|length > 0 %}
                         <div class="metadata-item">Categories: {{ result.metadata.category|join(', ') }}</div>
                     {% endif %}
                     {% if index == 'tech' %}
-                        <div class="metadata-item">{{ result.metadata.number }}</div>
+                        {% if result.metadata.number %}
+                            <div class="metadata-item">{{ result.metadata.number }}</div>
+                        {% endif %}
                         {% if result.metadata.patent %}
                             <div class="metadata-item">Patents: {{ result.metadata.patent }}</div>
                         {% endif %}
@@ -210,23 +212,35 @@
                             <div class="metadata-item"><a href="{{ result.metadata.link }}" target="_blank">Original Source</a></div>
                         {% endif %}
                     {% else %}
-                        <div class="metadata-item">Opportunity Number: {{ result.metadata.opportunity_number }}</div>
-                        <div class="metadata-item">Status: {{ result.metadata.status }}</div>
-                        <div class="metadata-item">Posted Date: {{ result.metadata.posted_date }}</div>
-                        <div class="metadata-item">Last Updated: {{ result.metadata.last_updated_date }}</div>
-                        <div class="metadata-item">Close Date: {{ result.metadata.close_date }}</div>
-                        <div class="metadata-item">Application Deadline: {{ result.metadata.application_deadline }}</div>
+                        {% if result.metadata.opportunity_number %}
+                            <div class="metadata-item">Opportunity Number: {{ result.metadata.opportunity_number }}</div>
+                        {% endif %}
+                        {% if result.metadata.status %}
+                            <div class="metadata-item">Status: {{ result.metadata.status }}</div>
+                        {% endif %}
+                        {% if result.metadata.posted_date %}
+                            <div class="metadata-item">Posted Date: {{ result.metadata.posted_date }}</div>
+                        {% endif %}
+                        {% if result.metadata.last_updated_date %}
+                            <div class="metadata-item">Last Updated: {{ result.metadata.last_updated_date }}</div>
+                        {% endif %}
+                        {% if result.metadata.close_date %}
+                            <div class="metadata-item">Close Date: {{ result.metadata.close_date }}</div>
+                        {% endif %}
+                        {% if result.metadata.application_deadline %}
+                            <div class="metadata-item">Application Deadline: {{ result.metadata.application_deadline }}</div>
+                        {% endif %}
                         {% if result.metadata.total_funding %}
-                            <div class="metadata-item">Total Funding: ${{ result.metadata.total_funding }}</div>
+                            <div class="metadata-item">Total Funding: {{ result.metadata.total_funding }}</div>
                         {% endif %}
                         {% if result.metadata.award_ceiling %}
-                            <div class="metadata-item">Award Ceiling: ${{ result.metadata.award_ceiling }}</div>
+                            <div class="metadata-item">Award Ceiling: {{ result.metadata.award_ceiling }}</div>
                         {% endif %}
                         {% if result.metadata.award_floor %}
-                            <div class="metadata-item">Award Floor: ${{ result.metadata.award_floor }}</div>
+                            <div class="metadata-item">Award Floor: {{ result.metadata.award_floor }}</div>
                         {% endif %}
                         {% if result.metadata.link %}
-                            <div class="metadata-item">Grant Link: <a href="{{ result.metadata.link }}" target="_blank">View on Grants.gov</a></div>
+                            <div class="metadata-item"><a href="{{ result.metadata.link }}" target="_blank">View original source</a></div>
                         {% endif %}
                     {% endif %}
                 </div>
