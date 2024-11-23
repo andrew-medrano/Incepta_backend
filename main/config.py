@@ -1,5 +1,6 @@
 import os
 from dotenv import load_dotenv
+from datetime import timedelta
 
 # Load environment variables from .env file
 load_dotenv()
@@ -22,6 +23,9 @@ class ProductionConfig(Config):
     FLASK_ENV = 'production'
     DEBUG = False
     TESTING = False
+    SESSION_COOKIE_SECURE = True
+    SESSION_COOKIE_HTTPONLY = True
+    PERMANENT_SESSION_LIFETIME = timedelta(minutes=60)
 
 class DevelopmentConfig(Config):
     FLASK_ENV = 'development'

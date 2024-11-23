@@ -13,8 +13,10 @@ if __name__ == '__main__':
     # Create Flask app
     app = create_app(ss)
 
-    # Run the app
-    app.run(
-        host=os.getenv('FLASK_HOST', '127.0.0.1'),
-        port=int(os.getenv('FLASK_PORT', 5001))
-    )
+    if os.getenv('FLASK_ENV') == 'development':
+        app.run(
+            host=os.getenv('FLASK_HOST', '127.0.0.1'),
+            port=int(os.getenv('FLASK_PORT', 5001))
+        )
+    else:
+        print("Please use a production WSGI server.")
