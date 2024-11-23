@@ -14,7 +14,7 @@
 
         /* Fix header styles to match exactly */
         .nav-header {
-            padding: 0.75rem 2.75rem;
+            padding: 0.75rem 1rem;
             background: transparent;
             box-shadow: none;
             position: fixed;
@@ -32,6 +32,7 @@
             justify-content: space-between;
             align-items: center;
             position: relative;
+            padding: 0 6rem;
         }
 
         /* Fix logo styles */
@@ -40,21 +41,23 @@
             align-items: center;
             text-decoration: none;
             cursor: pointer;
+            min-width: 0;
         }
 
         .logo-container img {
-            width: 48px;  /* Fixed from 80px to 48px */
+            width: 48px;
             height: 48px;
-            margin-right: 1rem;
+            margin-right: 0.5rem;
         }
 
         .logo-text {
-            font-size: 1.875rem;
+            font-size: 1.5rem;
             background: linear-gradient(to right, #9333ea, #4f46e5);
             -webkit-background-clip: text;
             background-clip: text;
             color: transparent;
             font-weight: bold;
+            white-space: nowrap;
         }
 
         .beta-tag {
@@ -65,6 +68,7 @@
             font-size: 0.75rem;
             margin-left: 0.5rem;
             font-weight: bold;
+            white-space: nowrap;
         }
 
         .about-link {
@@ -76,6 +80,7 @@
             line-height: 1;
             display: flex;
             align-items: center;
+            white-space: nowrap;
         }
 
         .about-link:hover {
@@ -88,6 +93,7 @@
             margin: 0 auto;
             padding: 2rem;
             padding-top: 8rem;
+            padding-right: 2rem;
         }
         
         .detail-header {
@@ -170,6 +176,149 @@
         .back-button:hover {
             color: #4f46e5;
         }
+
+        .floating-contact {
+            position: fixed;
+            right: 2rem;
+            top: 10rem;
+            transform: none;
+            background: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            width: 220px;
+            z-index: 10;
+            left: calc(50% + 24rem + 2rem);
+        }
+
+        .contact-text {
+            font-size: 0.95rem;
+            color: #374151;
+            margin-bottom: 1rem;
+            line-height: 1.4;
+        }
+
+        .contact-button {
+            background: linear-gradient(to right, #9333ea, #4f46e5);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 9999px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        .contact-button:hover {
+            transform: translateY(-2px);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 5% auto;
+            padding: 2rem;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 500px;
+            position: relative;
+        }
+
+        .close-button {
+            position: absolute;
+            right: 1rem;
+            top: 0.5rem;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #666;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #374151;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 1rem;
+        }
+
+        .form-group textarea {
+            height: 100px;
+            resize: vertical;
+        }
+
+        .submit-button {
+            background: linear-gradient(to right, #9333ea, #4f46e5);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 6px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 1rem;
+        }
+
+        .submit-button:hover {
+            opacity: 0.9;
+        }
+
+        @media (max-width: 1200px) {
+            .floating-contact {
+                position: static;
+                width: auto;
+                margin-top: 2rem;
+                transform: none;
+                left: auto;
+            }
+        }
+
+        /* Add responsive adjustments */
+        @media (max-width: 640px) {
+            .nav-header {
+                padding: 0.75rem 0.5rem;
+            }
+            
+            .logo-container img {
+                width: 40px;
+                height: 40px;
+            }
+            
+            .logo-text {
+                font-size: 1.25rem;
+            }
+            
+            .beta-tag {
+                font-size: 0.65rem;
+                padding: 0.2rem 0.4rem;
+            }
+            .nav-container {
+                padding: 0 1.5rem;
+            }
+        }
     </style>
 </head>
 <body>
@@ -198,51 +347,31 @@
                 </div>
                 
                 <div class="metadata">
-                    {% if result.metadata.category and result.metadata.category|length > 0 %}
-                        <div class="metadata-item">Categories: {{ result.metadata.category|join(', ') }}</div>
-                    {% endif %}
-                    {% if index == 'tech' %}
-                        {% if result.metadata.number %}
-                            <div class="metadata-item">{{ result.metadata.number }}</div>
+                    {% for field, config in common_fields.items() %}
+                        {% if result.metadata[field] %}
+                            <div class="metadata-item">
+                                {% if config.type == 'list' %}
+                                    {{ config.display_name }}: {{ result.metadata[field]|join(', ') }}
+                                {% else %}
+                                    {{ config.display_name }}: {{ result.metadata[field] }}
+                                {% endif %}
+                            </div>
                         {% endif %}
-                        {% if result.metadata.patent %}
-                            <div class="metadata-item">Patents: {{ result.metadata.patent }}</div>
+                    {% endfor %}
+
+                    {% for field, config in metadata_fields.items() %}
+                        {% if result.metadata[field] %}
+                            <div class="metadata-item">
+                                {% if config.type == 'link' %}
+                                    <a href="{{ result.metadata[field] }}" target="_blank">{{ config.display_name }}</a>
+                                {% elif config.display_name %}
+                                    {{ config.display_name }}: {{ result.metadata[field] }}
+                                {% else %}
+                                    {{ result.metadata[field] }}
+                                {% endif %}
+                            </div>
                         {% endif %}
-                        {% if result.metadata.link %}
-                            <div class="metadata-item"><a href="{{ result.metadata.link }}" target="_blank">Original Source</a></div>
-                        {% endif %}
-                    {% else %}
-                        {% if result.metadata.opportunity_number %}
-                            <div class="metadata-item">Opportunity Number: {{ result.metadata.opportunity_number }}</div>
-                        {% endif %}
-                        {% if result.metadata.status %}
-                            <div class="metadata-item">Status: {{ result.metadata.status }}</div>
-                        {% endif %}
-                        {% if result.metadata.posted_date %}
-                            <div class="metadata-item">Posted Date: {{ result.metadata.posted_date }}</div>
-                        {% endif %}
-                        {% if result.metadata.last_updated_date %}
-                            <div class="metadata-item">Last Updated: {{ result.metadata.last_updated_date }}</div>
-                        {% endif %}
-                        {% if result.metadata.close_date %}
-                            <div class="metadata-item">Close Date: {{ result.metadata.close_date }}</div>
-                        {% endif %}
-                        {% if result.metadata.application_deadline %}
-                            <div class="metadata-item">Application Deadline: {{ result.metadata.application_deadline }}</div>
-                        {% endif %}
-                        {% if result.metadata.total_funding %}
-                            <div class="metadata-item">Total Funding: {{ result.metadata.total_funding }}</div>
-                        {% endif %}
-                        {% if result.metadata.award_ceiling %}
-                            <div class="metadata-item">Award Ceiling: {{ result.metadata.award_ceiling }}</div>
-                        {% endif %}
-                        {% if result.metadata.award_floor %}
-                            <div class="metadata-item">Award Floor: {{ result.metadata.award_floor }}</div>
-                        {% endif %}
-                        {% if result.metadata.link %}
-                            <div class="metadata-item"><a href="{{ result.metadata.link }}" target="_blank">View original source</a></div>
-                        {% endif %}
-                    {% endif %}
+                    {% endfor %}
                 </div>
             </div>
         </div>
@@ -250,6 +379,105 @@
         <div class="description">
             {{ result.metadata.description }}
         </div>
+
+        <div class="floating-contact">
+            <div class="contact-text">
+                {% if index == 'tech' %}
+                    Interested in licensing or learning more about this technology?
+                {% else %}
+                    Interested in applying or learning more about this grant?
+                {% endif %}
+            </div>
+            <button class="contact-button" onclick="openContactForm()">
+                Speak with an Expert
+            </button>
+        </div>
+
+        <!-- Modal Form -->
+        <div id="contactModal" class="modal">
+            <div class="modal-content">
+                <span class="close-button" onclick="closeContactForm()">&times;</span>
+                <h2>Contact Us</h2>
+                <form id="contactForm" onsubmit="submitForm(event)">
+                    <div class="form-group">
+                        <label for="name">Name *</label>
+                        <input type="text" id="name" name="name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="email">Email *</label>
+                        <input type="email" id="email" name="email" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="company">Company</label>
+                        <input type="text" id="company" name="company">
+                    </div>
+                    <div class="form-group">
+                        <label for="phone">Phone</label>
+                        <input type="tel" id="phone" name="phone">
+                    </div>
+                    <div class="form-group">
+                        <label for="message">Message *</label>
+                        <textarea id="message" name="message" required></textarea>
+                    </div>
+                    <input type="hidden" id="itemTitle" name="itemTitle" value="{{ result.metadata.title }}">
+                    <input type="hidden" id="itemType" name="itemType" value="{{ 'Technology' if index == 'tech' else 'Grant' }}">
+                    <button type="submit" class="submit-button">Submit</button>
+                </form>
+            </div>
+        </div>
     </div>
+
+    <script>
+        function openContactForm() {
+            document.getElementById('contactModal').style.display = 'block';
+        }
+
+        function closeContactForm() {
+            document.getElementById('contactModal').style.display = 'none';
+        }
+
+        function submitForm(event) {
+            event.preventDefault();
+            
+            const formData = {
+                name: document.getElementById('name').value,
+                email: document.getElementById('email').value,
+                company: document.getElementById('company').value,
+                phone: document.getElementById('phone').value,
+                message: document.getElementById('message').value,
+                itemTitle: document.getElementById('itemTitle').value,
+                itemType: document.getElementById('itemType').value
+            };
+
+            fetch('/submit-contact', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(formData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Thank you for your interest! We will contact you soon.');
+                    closeContactForm();
+                    document.getElementById('contactForm').reset();
+                } else {
+                    alert('There was an error submitting the form. Please try again.');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('There was an error submitting the form. Please try again.');
+            });
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            if (event.target == document.getElementById('contactModal')) {
+                closeContactForm();
+            }
+        }
+    </script>
 </body>
 </html>

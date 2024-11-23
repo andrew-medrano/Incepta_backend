@@ -4,6 +4,11 @@ import time
 import os
 from tqdm import tqdm
 from main.constants.categories import CATEGORIES
+from main.constants.metadata_fields import (
+    TECH_METADATA_FIELDS,
+    GRANTS_METADATA_FIELDS,
+    COMMON_METADATA_FIELDS
+)
 
 class EmbeddingsGenerator:
     def __init__(self, data_path, index_name):

@@ -2,6 +2,14 @@ from flask import Blueprint, request, jsonify, current_app, render_template
 from main.services.search_service import SemanticSearch
 from main.constants.agency_codes import get_agency_info
 from main.constants.university_codes import get_university_info
+from main.constants.metadata_fields import (
+    TECH_METADATA_FIELDS,
+    GRANTS_METADATA_FIELDS,
+    COMMON_METADATA_FIELDS
+)
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
 search_bp = Blueprint('search', __name__)
 
@@ -84,4 +92,55 @@ def result_detail(index, id):
             'agency_logo': agency_info['logo']
         })
         
-    return render_template('result_detail.html', result=result, index=index)
+    return render_template(
+        'result_detail.html',
+        result=result,
+        index=index,
+        metadata_fields=TECH_METADATA_FIELDS if index == 'tech' else GRANTS_METADATA_FIELDS,
+        common_fields=COMMON_METADATA_FIELDS
+    )
+
+@search_bp.route('/submit-contact', methods=['POST'])
+def submit_contact():
+    data = request.json
+    
+    # Create email content
+    subject = f"New {data['itemType']} Inquiry: {data['itemTitle']}"
+    body = f"""
+    New contact form submission:
+    
+    Name: {data['name']}
+    Email: {data['email']}
+    Company: {data['company']}
+    Phone: {data['phone']}
+    
+    Item Type: {data['itemType']}
+    Item Title: {data['itemTitle']}
+    
+    Message:
+    {data['message']}
+    """
+    
+    # Email configuration
+    sender_email = "amedrano.az@gmail.com"  # Replace with your email
+    receiver_emails = ["amedrano.az@gmail.com", "amedrano.az@gmail.com"]  # Replace with your email
+    password = open("/Users/andre/startup/gmail_app_password.txt", "r").read()  # Replace with your email password or app-specific password
+    
+    # Create message
+    message = MIMEMultipart()
+    message["From"] = sender_email
+    message["To"] = ", ".join(receiver_emails)
+    message["Subject"] = subject
+    
+    message.attach(MIMEText(body, "plain"))
+    
+    try:
+        # Create SMTP session
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+            server.login(sender_email, password)
+            server.send_message(message)
+        
+        return jsonify({"success": True})
+    except Exception as e:
+        print(f"Error sending email: {str(e)}")
+        return jsonify({"success": False}), 500

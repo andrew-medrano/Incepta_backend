@@ -13,7 +13,7 @@
         }
 
         .nav-header {
-            padding: 0.75rem 2.75rem;
+            padding: 0.75rem 1rem;
             background: transparent;
             box-shadow: none;
             position: fixed;
@@ -31,6 +31,7 @@
             justify-content: space-between;
             align-items: center;
             position: relative;
+            padding: 0 6rem;
         }
 
         .logo-container {
@@ -38,21 +39,23 @@
             align-items: center;
             text-decoration: none;
             cursor: pointer;
+            min-width: 0;
         }
 
         .logo-container img {
             width: 48px;
             height: 48px;
-            margin-right: 1rem;
+            margin-right: 0.5rem;
         }
 
         .logo-text {
-            font-size: 1.875rem;
+            font-size: 1.5rem;
             background: linear-gradient(to right, #9333ea, #4f46e5);
             -webkit-background-clip: text;
             background-clip: text;
             color: transparent;
             font-weight: bold;
+            white-space: nowrap;
         }
 
         .beta-tag {
@@ -63,6 +66,7 @@
             font-size: 0.75rem;
             margin-left: 0.5rem;
             font-weight: bold;
+            white-space: nowrap;
         }
 
         .container {
@@ -179,6 +183,7 @@
             line-height: 1;
             display: flex;
             align-items: center;
+            white-space: nowrap;
         }
 
         .about-link:hover {
@@ -431,6 +436,29 @@
             width: 100%;
             height: 100%;
             fill: currentColor;
+        }
+
+        @media (max-width: 640px) {
+            .nav-header {
+                padding: 0.75rem 0.5rem;
+            }
+            
+            .logo-container img {
+                width: 40px;
+                height: 40px;
+            }
+            
+            .logo-text {
+                font-size: 1.25rem;
+            }
+            
+            .beta-tag {
+                font-size: 0.65rem;
+                padding: 0.2rem 0.4rem;
+            }
+            .nav-container {
+                padding: 0 1.5rem;
+            }
         }
     </style>
 </head>

@@ -11,12 +11,25 @@
         }
 
         .nav-header {
-            padding: 1.5rem 2.5rem;
+            padding: 0.75rem 1rem;
             background: transparent;
             box-shadow: none;
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 20;
+            backdrop-filter: blur(8px);
+            background-color: rgba(255, 255, 255, 0.8);
+        }
+
+        .nav-container {
+            max-width: 95rem;
+            margin: 0 auto;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            position: relative;
+            padding: 0 6rem;
         }
 
         .logo-container {
@@ -24,21 +37,23 @@
             align-items: center;
             text-decoration: none;
             cursor: pointer;
+            min-width: 0;
         }
 
         .logo-container img {
             width: 48px;
             height: 48px;
-            margin-right: 1rem;
+            margin-right: 0.5rem;
         }
 
         .logo-text {
-            font-size: 1.875rem;
+            font-size: 1.5rem;
             background: linear-gradient(to right, #9333ea, #4f46e5);
             -webkit-background-clip: text;
             background-clip: text;
             color: transparent;
             font-weight: bold;
+            white-space: nowrap;
         }
 
         .beta-tag {
@@ -49,6 +64,7 @@
             font-size: 0.75rem;
             margin-left: 0.5rem;
             font-weight: bold;
+            white-space: nowrap;
         }
 
         .about-link {
@@ -56,10 +72,38 @@
             text-decoration: none;
             font-size: 1.1rem;
             transition: color 0.3s ease;
+            padding: 0.5rem 1rem;
+            line-height: 1;
+            display: flex;
+            align-items: center;
+            white-space: nowrap;
         }
 
         .about-link:hover {
             color: #9333ea;
+        }
+
+        @media (max-width: 640px) {
+            .nav-header {
+                padding: 0.75rem 0.5rem;
+            }
+            
+            .logo-container img {
+                width: 40px;
+                height: 40px;
+            }
+            
+            .logo-text {
+                font-size: 1.25rem;
+            }
+            
+            .beta-tag {
+                font-size: 0.65rem;
+                padding: 0.2rem 0.4rem;
+            }
+            .nav-container {
+                padding: 0 1.5rem;
+            }
         }
 
         .container {
@@ -140,12 +184,14 @@
 </head>
 <body>
     <header class="nav-header">
-        <a href="{{ url_for('home.home') }}" class="logo-container">
-            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Incepta Logo">
-            <span class="logo-text">Incepta</span>
-            <span class="beta-tag">BETA</span>
-        </a>
-        <a href="{{ url_for('about.about') }}" class="about-link">About</a>
+        <div class="nav-container">
+            <a href="{{ url_for('home.home') }}" class="logo-container">
+                <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Incepta Logo">
+                <span class="logo-text">Incepta</span>
+                <span class="beta-tag">BETA</span>
+            </a>
+            <a href="{{ url_for('about.about') }}" class="about-link">About</a>
+        </div>
     </header>
 
     <div class="container">
