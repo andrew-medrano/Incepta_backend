@@ -9,7 +9,7 @@ import os
 import asyncio
 from dotenv import load_dotenv
 from main.constants.pinecone_indexes import INDEX_ALIASES
-
+from main.constants.results_blacklist import GRANTS_BLACKLIST, TECH_BLACKLIST
 class SemanticSearch:
     def __init__(self, index_name='tech', top_k=20):
         # Load environment variables
@@ -69,6 +69,12 @@ class SemanticSearch:
             match['id'] = match['id']
             match['metadata'] = match['metadata']
             match['relevance_score'] = match['score']  # Use the original similarity score
+
+        # Filter out blacklisted results
+        if self.index_name == 'grants':
+            results['matches'] = [match for match in results['matches'] if match['id'] not in GRANTS_BLACKLIST]
+        elif self.index_name == 'tech':
+            results['matches'] = [match for match in results['matches'] if match['id'] not in TECH_BLACKLIST]
         
         return results['matches']  # Return results directly without re-ranking
 
