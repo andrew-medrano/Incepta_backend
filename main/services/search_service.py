@@ -5,15 +5,10 @@ os.environ["TOKENIZERS_PARALLELISM"] = "false"
 from pinecone import Pinecone
 from sentence_transformers import CrossEncoder, SentenceTransformer
 import numpy as np
-from nltk.tokenize import sent_tokenize
-import nltk
 import os
 import asyncio
 from dotenv import load_dotenv
 from main.constants.pinecone_indexes import INDEX_ALIASES
-
-# Download NLTK data files (only need to run once)
-nltk.download('punkt')
 
 class SemanticSearch:
     def __init__(self, index_name='tech', top_k=20):
