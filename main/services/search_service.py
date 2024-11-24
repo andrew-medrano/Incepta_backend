@@ -3,7 +3,7 @@ import os
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 from pinecone import Pinecone
-from sentence_transformers import CrossEncoder, SentenceTransformer
+# from sentence_transformers import CrossEncoder, SentenceTransformer
 import numpy as np
 import os
 import asyncio
@@ -21,10 +21,9 @@ class SemanticSearch:
         self.index = self.set_index(index_name)  # This line is fixed
         
         self.top_k = top_k
-        # Load the cross-encoder model for re-ranking
-        self.cross_encoder = CrossEncoder('cross-encoder/ms-marco-MiniLM-L-6-v2')
-        # Load the sentence embedding model for explanation generation
-        self.sentence_embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
+        # Comment out or remove cross-encoder initialization
+        # self.cross_encoder = CrossEncoder('cross-encoder/ms-marco-MiniLM-L-6-v2')
+        # self.sentence_embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
 
     def set_index(self, index_name):
         self.index_name = index_name
@@ -59,7 +58,7 @@ class SemanticSearch:
         results = self.index.query(
             namespace="ns1",
             vector=embedding[0].values,
-            top_k=self.top_k * 5,  # Retrieve more candidates for re-ranking
+            top_k=self.top_k,  # Changed from self.top_k * 5 to just self.top_k
             include_values=False, 
             include_metadata=True, 
             filter=filter_dict if filter_dict else None
@@ -67,29 +66,11 @@ class SemanticSearch:
 
         # Extract documents and add IDs to matches
         for match in results['matches']:
-            match['id'] = match['id']  # Ensure ID is included
+            match['id'] = match['id']
             match['metadata'] = match['metadata']
+            match['relevance_score'] = match['score']  # Use the original similarity score
         
-        # Extract document texts for re-ranking
-        documents = [match['metadata']['description'] for match in results['matches']]
-        
-        # Pair the query with each document for re-ranking
-        pairs = [[query, doc] for doc in documents]
-        
-        # Compute relevance scores using the cross-encoder
-        scores = self.cross_encoder.predict(pairs)
-        
-        # Attach scores to matches
-        for idx, match in enumerate(results['matches']):
-            match['relevance_score'] = scores[idx]
-        
-        # Sort matches based on the relevance scores
-        sorted_matches = sorted(results['matches'], key=lambda x: x['relevance_score'], reverse=True)
-        
-        # Select top_k results
-        top_matches = sorted_matches[:self.top_k]
-            
-        return top_matches
+        return results['matches']  # Return results directly without re-ranking
 
     def search_sync(self, query, category_filter=None):
         """Synchronous wrapper for the async search method"""

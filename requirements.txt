@@ -1,6 +1,5 @@
 # Core Dependencies
 pinecone-client>=3.0.0
-sentence-transformers[cpu]>=2.2.0
 pandas>=2.0.0
 python-dotenv>=1.0.0
 
