@@ -10,15 +10,21 @@ load_dotenv()
 ss = SemanticSearch(index_name='tech')
 application = create_app(ss)
 
+# Get port from environment variable or use default
+port = os.getenv('PORT')
+if port is None or port == "":
+    port = 5001
+else:
+    port = int(port)
+
 # This will only run in development
 if __name__ == '__main__':
-    if os.getenv('FLASK_ENV') == 'development':
-        application.run(
-            debug=True,
-            host=os.getenv('FLASK_HOST', '127.0.0.1'),
-            port=int(os.getenv('FLASK_PORT', 5001))
-        )
-    else:
-        # In production, Gunicorn will import 'application'
-        # This block won't run
-        print("Please use gunicorn for production deployment")
+    application.run(
+        debug=os.getenv('FLASK_ENV') == 'development',
+        host='0.0.0.0',  # Listen on all available interfaces
+        port=port
+    )
+
+@application.route('/health')
+def health():
+    return 'OK', 200
