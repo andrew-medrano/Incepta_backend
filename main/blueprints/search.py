@@ -12,6 +12,8 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import os
 from dotenv import load_dotenv
+import requests
+import logging
 
 
 search_bp = Blueprint('search', __name__)
@@ -105,47 +107,35 @@ def result_detail(index, id):
 
 @search_bp.route('/submit-contact', methods=['POST'])
 def submit_contact():
-    load_dotenv()
-
     data = request.json
     
-    # Create email content
-    subject = f"New {data['itemType']} Inquiry: {data['itemTitle']}"
-    body = f"""
-    New contact form submission:
-    
-    Name: {data['name']}
-    Email: {data['email']}
-    Company: {data['company']}
-    Phone: {data['phone']}
-    
-    Item Type: {data['itemType']}
-    Item Title: {data['itemTitle']}
-    
-    Message:
-    {data['message']}
-    """
-    
-    # Email configuration
-    sender_email = os.getenv('SMTP_USERNAME')
-    receiver_emails = [os.getenv('SMTP_USERNAME')]
-    password = os.getenv('SMTP_PASSWORD')
-    
-    # Create message
-    message = MIMEMultipart()
-    message["From"] = sender_email
-    message["To"] = ", ".join(receiver_emails)
-    message["Subject"] = subject
-    
-    message.attach(MIMEText(body, "plain"))
-    
+    # Format the message for Slack using the simpler text-based format
+    slack_message = {
+        "text": (
+            f"New {data['itemType']} Inquiry\n\n"
+            f"From: {data['name']}\n"
+            f"Email: {data['email']}\n"
+            f"Company: {data['company']}\n"
+            f"Phone: {data['phone']}\n\n"
+            f"Item Title: {data['itemTitle']}\n"
+            f"Message: {data['message']}"
+        )
+    }
+
     try:
-        # Create SMTP session
-        with smtplib.SMTP_SSL("smtp.gmail.com", int(os.getenv('SMTP_PORT'))) as server:
-            server.login(sender_email, password)
-            server.send_message(message)
+        logging.info(f"Sending Slack notification for inquiry from {data['email']}")
+        response = requests.post(
+            os.getenv('SLACK_WEBHOOK_URL'),
+            json=slack_message
+        )
         
-        return jsonify({"success": True})
+        if response.status_code == 200:
+            logging.info("Slack notification sent successfully")
+            return jsonify({"success": True})
+        else:
+            logging.error(f"Slack API error: {response.status_code} - {response.text}")
+            return jsonify({"success": False}), 500
+            
     except Exception as e:
-        print(f"Error sending email: {str(e)}")
+        logging.error(f"Error sending Slack notification: {str(e)}")
         return jsonify({"success": False}), 500
