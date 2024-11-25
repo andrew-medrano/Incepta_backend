@@ -3,5 +3,9 @@
 .env.local
 .env.*.local
 
+# Python cache
+__pycache__/
+*.pyc
+
 # But allow example file
 !.env.example
