@@ -96,13 +96,13 @@ class StanfordScraper(BaseScraper):
 
     def get_description(self, subpage_soup: BeautifulSoup) -> str:
         """
-        Extract and format description, applications, and advantages from a subpage.
+        Extract and format applications and advantages from a subpage, even when description is missing.
 
         Args:
             subpage_soup (BeautifulSoup): Parsed HTML content of a subpage.
 
         Returns:
-            str: Formatted description including applications and advantages.
+            str: Formatted text including applications and advantages, with description if available.
         """
         try:
             # Get applications
@@ -117,32 +117,33 @@ class StanfordScraper(BaseScraper):
             if advantages_header and advantages_header.find_next('ul'):
                 advantages = [li.get_text().strip() for li in advantages_header.find_next('ul').find_all('li')]
             
-            # Get descriptions
+            # Get descriptions (if available)
             description_div = subpage_soup.find('div', class_='docket__text')
-            if not description_div:
-                return "Description not available"
-                
-            descriptions = [
-                para.get_text().strip() 
-                for para in description_div.find_all('p')
-                if para.get_text().strip()
-            ]
-            full_description = "\n".join(descriptions)
+            descriptions = []
+            if description_div:
+                descriptions = [
+                    para.get_text().strip() 
+                    for para in description_div.find_all('p')
+                    if para.get_text().strip()
+                ]
 
-            # Construct the final paragraph
-            parts = [full_description]
+            # Construct the final paragraph, only including non-empty sections
+            parts = []
+            if descriptions:
+                parts.append("\n".join(descriptions))
             if applications:
                 parts.append(f'Applications: {", ".join(applications)}.')
             if advantages:
                 parts.append(f'Advantages: {", ".join(advantages)}.')
 
-            full_paragraph = "\n\n".join(parts)
-
-            return full_paragraph
+            # If we have any content, join it; otherwise return a default message
+            if parts:
+                return "\n\n".join(parts)
+            return "No description, applications, or advantages available"
 
         except Exception as e:
             logging.error(f"Error extracting description: {str(e)}")
-            return "Description not available"
+            return "Error extracting content"
 
     async def scrape(self, limit: int = None, output_file: Optional[str] = None, max_concurrent: int = 5) -> List[Dict[str, str]]:
         # Your Stanford-specific scraping implementation
@@ -168,7 +169,7 @@ async def main():
     print("Starting Stanford TechFinder scraping process...")
     
     async with StanfordScraper() as scraper:
-        await scraper.scrape(output_file='data/tech/stanford_2024_11_21.csv')
+        await scraper.scrape(output_file='data/tech/stanford_2024_11_24.csv')
 
 if __name__ == "__main__":
     asyncio.run(main())

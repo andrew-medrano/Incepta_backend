@@ -280,10 +280,11 @@ class EmbeddingsGenerator:
         print("Upsert complete.")
 
 if __name__ == "__main__":
-    option = 'tech'
+    option = 'tech' # ONLY CHANGE THIS, DO NOT CHANGE THE REST (grants or tech)
+    date = '2024-11-24'
     options = {
         'grants': {
-            'index_name': 'grants-2024-11-21',
+            'index_name': f'grants-{date}',
             'data_path': 'data/grants',
             'required_cols': ["OPPORTUNITY TITLE","AGENCY CODE","OPPORTUNITY STATUS",
                             "POSTED DATE","CLOSE DATE","LINK","OPPORTUNITY NUMBER",
@@ -292,7 +293,7 @@ if __name__ == "__main__":
             'format_data': 'format_grants_data'
         },
         'tech': {
-            'index_name': 'tech-2024-11-21',
+            'index_name': f'tech-{date}',
             'data_path': 'data/tech',
             'required_cols': ["university", "title", "number", "patent", "link", "description"],
             'format_data': 'format_tech_data'
