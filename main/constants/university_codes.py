@@ -4,6 +4,12 @@ UNIVERSITY_INFO = {
         'logo': 'static/university_logos/stanford.png',
         'tech_transfer_office': 'Stanford Office of Technology Licensing',
         'website': 'https://techfinder.stanford.edu/'
+    },
+    'MIT': {
+        'name': 'Massachusetts Institute of Technology',
+        'logo': 'static/university_logos/mit.png',
+        'tech_transfer_office': 'MIT Technology Licensing Office',
+        'website': 'https://tlo.mit.edu/'
     }
 }
 

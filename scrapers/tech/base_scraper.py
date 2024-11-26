@@ -57,7 +57,7 @@ class BaseScraper(ABC):
         all_items = []
         logging.info("Starting scraping process...")
         
-        current_page = 1
+        current_page = 0
         while limit is None or current_page <= limit:
             logging.info(f"Processing page {current_page}...")
             

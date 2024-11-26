@@ -281,7 +281,7 @@ class EmbeddingsGenerator:
 
 if __name__ == "__main__":
     option = 'tech' # ONLY CHANGE THIS, DO NOT CHANGE THE REST (grants or tech)
-    date = '2024-11-24'
+    date = '2024-11-26' # can actually change this too
     options = {
         'grants': {
             'index_name': f'grants-{date}',
