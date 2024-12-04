@@ -70,11 +70,17 @@ class SemanticSearch:
             match['metadata'] = match['metadata']
             match['relevance_score'] = match['score']  # Use the original similarity score
 
-        # Filter out blacklisted results
+        # Filter out blacklisted results - fixing the blacklist check
         if self.index_name == 'grants':
-            results['matches'] = [match for match in results['matches'] if match['id'] not in GRANTS_BLACKLIST]
+            results['matches'] = [
+                match for match in results['matches'] 
+                if str(match['id']).strip().lower() not in {str(id).strip().lower() for id in GRANTS_BLACKLIST}
+            ]
         elif self.index_name == 'tech':
-            results['matches'] = [match for match in results['matches'] if match['id'] not in TECH_BLACKLIST]
+            results['matches'] = [
+                match for match in results['matches'] 
+                if str(match['id']).strip().lower() not in {str(id).strip().lower() for id in TECH_BLACKLIST}
+            ]
         
         return results['matches']  # Return results directly without re-ranking
 
