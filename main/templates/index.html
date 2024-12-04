@@ -373,6 +373,19 @@
             box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
             width: 150px;
             z-index: 10;
+            display: block;
+        }
+
+        @media (max-width: 1200px) {
+            .category-sidebar {
+                display: none;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .category-sidebar {
+                display: none;
+            }
         }
 
         .category-title {
@@ -457,6 +470,9 @@
             }
             .nav-container {
                 padding: 0 1.5rem;
+            }
+            .category-sidebar {
+                display: none; /* Hide category sidebar on mobile */
             }
         }
     </style>
@@ -842,6 +858,36 @@
                 performSearch(query, activeCategory);
             }
         });
+
+        function checkOverlap() {
+            const sidebar = document.querySelector('.category-sidebar');
+            const container = document.querySelector('.container');
+            const results = document.querySelector('#results');
+
+            if (sidebar && container && results) {
+                const sidebarRect = sidebar.getBoundingClientRect();
+                const containerRect = container.getBoundingClientRect();
+                const resultsRect = results.getBoundingClientRect();
+                const windowWidth = window.innerWidth;
+
+                // Show sidebar if window is wide enough and there's no overlap
+                if (windowWidth > 1200 && sidebarRect.right < resultsRect.left) {
+                    sidebar.style.display = 'block';
+                } else {
+                    sidebar.style.display = 'none';
+                }
+            }
+        }
+
+        // Run checkOverlap on window resize with debounce
+        let resizeTimeout;
+        window.addEventListener('resize', function() {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(checkOverlap, 100);
+        });
+
+        // Initial check on page load
+        document.addEventListener('DOMContentLoaded', checkOverlap);
     </script>
 </body>
 </html>
