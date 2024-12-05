@@ -18,6 +18,7 @@ from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.chrome.service import Service
 import os
 from selenium.webdriver.remote.remote_connection import LOGGER as selenium_logger
+import csv
 
 urllib3.disable_warnings()
 selenium_logger.setLevel(logging.WARNING)
@@ -158,9 +159,27 @@ def process_batch(urls, batch_size=10):
                 results.append((url, None))
     return results
 
+def extract_url_from_hyperlink(hyperlink_formula):
+    """Extract URL from Excel HYPERLINK formula"""
+    # Format is: =HYPERLINK(""url"",""text"")
+    try:
+        # Remove the =HYPERLINK( prefix and split by "",""
+        cleaned = hyperlink_formula.replace('=HYPERLINK(', '')
+        parts = cleaned.split('",')
+        # Get the first part and remove the leading/trailing quotes
+        url = parts[0].strip('"')
+        return url
+    except Exception as e:
+        logging.error(f"Failed to extract URL from: {hyperlink_formula}. Error: {str(e)}")
+        return None
+
 def main():
-    df = pd.read_csv("grants_gov_2024_11_20.csv")
-    output_file = "grants_gov_scraped_2024_11_20.csv"
+    df = pd.read_csv("Incepta_backend/data/grants/unprocessed/grants_gov_links.csv")
+    
+    # Extract URLs and create new column
+    df['LINK'] = df['OPPORTUNITY NUMBER'].apply(extract_url_from_hyperlink)
+    
+    output_file = "grants_gov_scraped_2024_12_05.csv"
     
     # Check for existing progress
     try:
@@ -229,12 +248,28 @@ def main():
                                     value = None
                         df.loc[idx, col] = value
     
-    # Save final results
+    # Save final results with consistent quoting
     if os.path.exists(output_file):
         final_df = pd.concat([pd.read_csv(output_file), df])
-        final_df.to_csv(output_file, index=False)
+        final_df.to_csv(
+            output_file, 
+            index=False,
+            quoting=csv.QUOTE_ALL,  # Quote all non-numeric fields
+            quotechar='"',                 # Use double quotes
+            encoding='utf-8',
+            escapechar='\\',              # Escape character for quotes within text
+            doublequote=True              # Double-quote rather than escape quotes
+        )
     else:
-        df.to_csv(output_file, index=False)
+        df.to_csv(
+            output_file, 
+            index=False,
+            quoting=csv.QUOTE_ALL,
+            quotechar='"',
+            encoding='utf-8',
+            escapechar='\\',
+            doublequote=True
+        )
     
     logging.info("Scraping completed successfully")
 

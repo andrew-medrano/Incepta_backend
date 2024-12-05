@@ -2,6 +2,7 @@ import openai
 import pandas as pd
 from dotenv import load_dotenv
 import os
+import csv
 
 load_dotenv()
 
@@ -29,6 +30,7 @@ def summarize_text(text, title, content_type='tech', max_tokens=900):
             ).choices[0].message.content.strip()
             
             return (
+                "The sponsoring grant agency did not provide a description. "
                 f"Based on the title, this grant is likely {brief_desc}.\n\n"
                 "For more detailed information about funding objectives, eligibility requirements, "
                 "and award amounts, please reach out to learn more about this opportunity."
@@ -45,6 +47,7 @@ def summarize_text(text, title, content_type='tech', max_tokens=900):
             ).choices[0].message.content.strip()
             
             return (
+                "The institution which posted this technology did not provide a description. "
                 f"Based on the title, this technology likely can {brief_desc}.\n\n"
                 "If you would like to learn more about the specific capabilities, technical details, "
                 "and potential applications of this technology, please reach out to us."
@@ -57,22 +60,26 @@ def summarize_text(text, title, content_type='tech', max_tokens=900):
         prompt = (
             f"Given the grant titled '{title}', provide a factual summary based only on the available information. "
             "If certain aspects are not mentioned, make reasonable, but conservative assumptions and fill out the summary accordingly. "
-            "If this is not possible, indicate 'Information not provided'. "
+            "If this is not possible, indicate 'Information not provided'. Use only sentences, no lists or other formatting. "
+            "Do not restate the title in the summary. Start the text and the header on the same line"
             "Use these headers:\n\n"
-            f"Award Information:\n\n"
-            f"Potential Applications:\n\n"
-            f"Text: {text}"
+            f"**Description:**\n\n"
+            f"**Research Objectives:**\n\n"
+            f"**Expected Outcomes:**\n\n"
+            f"**Application Considerations:**\n\n"
+            f"Here is the grant description: {text}"
         )
     else:  # tech/default case
         prompt = (
             f"Given the technology titled '{title}', provide a factual summary based only on the available information. "
             "If certain aspects are not mentioned, make reasonable, but conservative assumptions and fill out the summary accordingly. "
-            "If this is not possible, indicate 'Information not provided'. "
+            "If this is not possible, indicate 'Information not provided'. Use only sentences, no lists or other formatting. "
+            "Do not restate the title in the summary. Start the text and the header on the same line."
             "Use these headers:\n\n"
-            f"Summary:\n\n"
-            f"Applications:\n\n"
-            f"Problem Solved:\n\n"
-            f"Text: {text}"
+            f"**Summary:**\n\n"
+            f"**Applications:**\n\n"
+            f"**Problem Solved:**\n\n"
+            f"Here is the technology description: {text}"
         )
 
     response = openai.chat.completions.create(
@@ -92,7 +99,7 @@ def generate_teaser(title, text, max_tokens=100):
         print("Short/empty text detected - generating teaser from title only")
         # Create a teaser based only on the title
         prompt = (
-            f"Create a very brief, factual summarybased only on the title: '{title}'. "
+            f"Create a very brief, factual summary based only on the title: '{title}'. "
             "Do not make assumptions beyond what the title directly implies. "
             "If the title is not descriptive enough, return a conservative statement."
             "Do not restate the title in the summary."
@@ -115,52 +122,103 @@ def generate_teaser(title, text, max_tokens=100):
     )
     return response.choices[0].message.content.strip()
 
+def clean_text(text):
+    """Clean text by removing excessive whitespace and normalizing line breaks."""
+    if not text:
+        return ""
+    
+    # Convert to string in case we get a non-string input
+    text = str(text)
+    
+    # Replace multiple newlines with a single newline
+    text = '\n'.join(line.strip() for line in text.splitlines() if line.strip())
+    
+    # Replace multiple spaces with a single space
+    text = ' '.join(text.split())
+    
+    return text
+
 def process_csv(input_csv_path, output_csv_path, content_type='tech', limit=None):
     print(f"Starting to process CSV file: {input_csv_path}")
     
     # Load the CSV file
-    df = pd.read_csv(input_csv_path, nrows=limit)
+    df = pd.read_csv(input_csv_path, 
+                     skipinitialspace=True,  # Skip spaces after delimiter
+                     skip_blank_lines=True,  # Skip blank lines
+                     encoding='utf-8',       # Specify encoding
+                     on_bad_lines='skip',     # Skip problematic lines
+                     nrows=limit)
     print(f"Loaded {len(df)} rows from CSV")
 
-    # Determine the correct column names for title and description
-    title_col = 'OPPORTUNITY TITLE' if content_type.lower() == 'grants' else 'title'
-    description_col = 'DESCRIPTION' if content_type.lower() == 'grants' else 'description'
+    # Clean column names by stripping whitespace
+    df.columns = df.columns.str.strip()
+
+    # Find the correct columns using case-insensitive matching
+    title_patterns = ['OPPORTUNITY TITLE', 'TITLE']
+    desc_patterns = ['DESCRIPTION']
+    
+    title_col = next((col for col in df.columns 
+                     if any(pattern.lower() == col.lower() for pattern in title_patterns)), None)
+    description_col = next((col for col in df.columns 
+                          if any(pattern.lower() == col.lower() for pattern in desc_patterns)), None)
+
+    if not title_col or not description_col:
+        raise ValueError(f"Could not find required columns. Available columns: {df.columns.tolist()}")
+
     print(f"Using columns: {title_col} and {description_col}")
 
-    # Add new columns for summaries and teasers
-    df['Description'] = df[description_col]
+    # Add new columns for summaries and teasers with improved cleaning
+    df['Description'] = df[description_col].apply(clean_text)
     
     print("Starting to generate summaries...")
     df['LLM Summary'] = df.apply(lambda row: 
-        summarize_text(row['Description'], row[title_col], content_type).replace('\n', '\\n'), axis=1)
+        summarize_text(row['Description'], row[title_col], content_type), axis=1)
     print("Finished generating summaries")
     
     print("Starting to generate teasers...")
     df['LLM Teaser'] = df.apply(lambda row: 
-        generate_teaser(row[title_col], row['Description']).replace('\n', '\\n'), axis=1)
+        generate_teaser(row[title_col], row['Description']), axis=1)
     print("Finished generating teasers")
 
-    # Save the updated DataFrame to a new CSV file with proper quoting
+    # Debugging: Check if 'LLM Teaser' column exists
+    print("Columns in DataFrame before saving:", df.columns)
+
+    # Save without any manual newline encoding - let pandas handle it
     print(f"Saving results to: {output_csv_path}")
-    df.to_csv(output_csv_path, index=False, quoting=1, escapechar='\\')  # quoting=1 is QUOTE_ALL
+    df.to_csv(output_csv_path, index=False, quoting=csv.QUOTE_ALL)
     print("Processing complete!")
 
+def read_and_process_csv(file_path, content_type='tech'):
+    # Let pandas handle the newline parsing
+    df = pd.read_csv(file_path, lineterminator='\n')
+    for _, row in df.iterrows():
+        print("\n" + "="*80)
+        if content_type == 'tech':
+            print(f"TECHNOLOGY TITLE: {row['title']}")
+            print("-"*80)
+            print(f"TECHNICAL DESCRIPTION:\n{row['Description']}")
+        else:  # grants
+            print(f"GRANT OPPORTUNITY: {row['OPPORTUNITY TITLE']}")
+            print("-"*80) 
+            print(f"GRANT DESCRIPTION:\n{row['DESCRIPTION']}")
+        print("-"*80) 
+        print(f"TEASER:\n{row['LLM Teaser']}")
+        print("-"*80)
+        print(f"SUMMARY:\n{row['LLM Summary']}")
 
 if __name__ == "__main__":
     # Example usage
-    # Read 3 random rows
-    df = pd.read_csv('Incepta_backend/data/tech/mit_2024_11_26.csv')
-    random_rows = df.sample(n=3)
-    random_rows.to_csv('Incepta_backend/data/tech/mit_2024_11_26_random.csv', index=False)
-    process_csv('Incepta_backend/data/tech/mit_2024_11_26_random.csv', 'Incepta_backend/data/tech/mit_2024_11_26_summarized.csv')
-    # Read the summarized CSV and print results
-    df_results = pd.read_csv('Incepta_backend/data/tech/mit_2024_11_26_summarized.csv')
-    for _, row in df_results.iterrows():
-        print("\n" + "="*80)
-        print(f"TITLE: {row['title']}")
-        print("-"*80)
-        print(f"DESCRIPTION:\n{row['Description'].replace('\\n', '\n')}")
-        print("-"*80) 
-        print(f"TEASER:\n{row['LLM Teaser'].replace('\\n', '\n')}")
-        print("-"*80)
-        print(f"SUMMARY:\n{row['LLM Summary'].replace('\\n', '\n')}")
+    input_csv_path = 'Incepta_backend/data/grants/grants_gov_scraped_2024_11_20_cleaned.csv'
+    output_csv_path = 'Incepta_backend/data/grants/grants_gov_scraped_2024_11_20_random.csv'
+    summarized_csv_path = 'Incepta_backend/data/grants/grants_gov_scraped_2024_11_20_summarized.csv'
+    
+    # Create random sample
+    df = pd.read_csv(input_csv_path)
+    random_rows = df.sample(n=10)
+    random_rows.to_csv(output_csv_path, index=False)
+    
+    # Process and summarize
+    process_csv(output_csv_path, summarized_csv_path, content_type='grants')
+    
+    # Read the summarized CSV (not the random sample CSV)
+    read_and_process_csv(summarized_csv_path, content_type='grants')
