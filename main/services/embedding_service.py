@@ -53,14 +53,31 @@ class EmbeddingsGenerator:
         print("Loading data from CSV...")
         self.df = None
         
+        # Separate required and optional columns
+        optional_cols = ["LLM Summary", "LLM Teaser"]
+        strict_required_cols = [col for col in required_cols if col not in optional_cols]
+        
         for file in os.listdir(self.data_path):
             if file.endswith('.csv'):
-                print(f"Loading {file}...")
-                df = pd.read_csv(os.path.join(self.data_path, file), skipinitialspace=True)
-                df.columns = df.columns.str.strip().str.replace(' ', '_')
-                required_cols = [col.strip().replace(' ', '_') for col in required_cols]
-                if not all(col in df.columns for col in required_cols):
-                    print(f"Warning: {file} missing required columns {required_cols}")
+                print(f"\nLoading {file}...")
+                # Add quoting parameter to handle quoted columns
+                df = pd.read_csv(
+                    os.path.join(self.data_path, file),
+                    skipinitialspace=True,
+                    quotechar='"',  # Specify quote character
+                    encoding='utf-8'
+                )
+                
+                # Clean column names - remove quotes and standardize format
+                df.columns = df.columns.str.strip('" ').str.replace(' ', '_').str.upper()
+                cleaned_required_cols = [col.strip('" ').replace(' ', '_').upper() for col in strict_required_cols]
+                
+                print("\nAvailable columns in file:", list(df.columns))
+                print("\nCleaned required columns:", cleaned_required_cols)
+                
+                if not all(col in df.columns for col in cleaned_required_cols):
+                    missing_cols = [col for col in cleaned_required_cols if col not in df.columns]
+                    print(f"Missing columns: {missing_cols}")
                     continue
                 
                 if self.df is None:
@@ -155,9 +172,19 @@ class EmbeddingsGenerator:
             texts_to_classify = []
             
             for _, row in batch.iterrows():
+                # Use LLM Summary and Teaser if available, otherwise fall back to original text
+                summary = row.get('LLM Summary', '')
+                teaser = row.get('LLM Teaser', '')
                 title = row.OPPORTUNITY_TITLE if pd.notna(row.OPPORTUNITY_TITLE) else ""
-                summarized_description = str(row.DESCRIPTION)[:300] if len(str(row.DESCRIPTION)) > 300 else str(row.DESCRIPTION)
-                texts_to_classify.append(f"{title} {summarized_description}")
+                
+                # Combine teaser and summary for classification
+                text_for_classification = f"{title} {teaser} {summary}"
+                if not summary and not teaser:
+                    # Fallback to original description if no LLM content
+                    summarized_description = str(row.DESCRIPTION)[:300] if len(str(row.DESCRIPTION)) > 300 else str(row.DESCRIPTION)
+                    text_for_classification = f"{title} {summarized_description}"
+                
+                texts_to_classify.append(text_for_classification)
             
             # Batch classify texts
             batch_categories = self.classify_text_batch(texts_to_classify)
@@ -165,13 +192,19 @@ class EmbeddingsGenerator:
             for j, row in enumerate(batch.itertuples(index=False)):
                 title = row.OPPORTUNITY_TITLE if pd.notna(row.OPPORTUNITY_TITLE) else ""
                 description = row.DESCRIPTION if pd.notna(row.DESCRIPTION) else ""
-                full_text = f"{title}. {description}"
+                
+                # Fix: Use standardized column names with underscores
+                summary = getattr(row, 'LLM_SUMMARY', '')
+                teaser = getattr(row, 'LLM_TEASER', '')
+                
+                # Text for embedding will be LLM content if available, otherwise original
+                embedding_text = f"{title}. {teaser} {summary}" if (summary or teaser) else f"{title}. {description}"
                 
                 metadata = {
                     "title": title,
                     "opportunity_number": row.OPPORTUNITY_NUMBER if pd.notna(row.OPPORTUNITY_NUMBER) else "",
                     "agency_code": row.AGENCY_CODE if pd.notna(row.AGENCY_CODE) else "",
-                    "category": batch_categories[j],  # Use pre-classified categories
+                    "category": batch_categories[j],
                     "status": row.OPPORTUNITY_STATUS if pd.notna(row.OPPORTUNITY_STATUS) else "",
                     "posted_date": row.POSTED_DATE if pd.notna(row.POSTED_DATE) else "",
                     "last_updated_date": row.LAST_UPDATED_DATE if pd.notna(row.LAST_UPDATED_DATE) else "",
@@ -181,12 +214,14 @@ class EmbeddingsGenerator:
                     "award_ceiling": row.AWARD_CEILING if pd.notna(row.AWARD_CEILING) else "",
                     "award_floor": row.AWARD_FLOOR if pd.notna(row.AWARD_FLOOR) else "",
                     "link": row.LINK if pd.notna(row.LINK) else "",
-                    "description": description
+                    "description": description,
+                    "llm_summary": summary,
+                    "llm_teaser": teaser
                 }
                 
                 data.append({
                     "id": f"vec{i+j}",
-                    "text": full_text,
+                    "text": embedding_text,
                     "metadata": metadata
                 })
         
@@ -203,29 +238,37 @@ class EmbeddingsGenerator:
             texts_to_classify = []
             
             for _, row in batch.iterrows():
-                title = row.title if pd.notna(row.title) else ""
-                description = row.description if pd.notna(row.description) else ""
-                texts_to_classify.append(f"{title} {description}")
+                summary = row.get('LLM_SUMMARY', '')  # Changed from 'LLM Summary'
+                teaser = row.get('LLM_TEASER', '')   # Changed from 'LLM Teaser'
+                title = row.TITLE if pd.notna(row.TITLE) else ""  # Changed from row.title
+
+                texts_to_classify.append(f"{title} {teaser} {summary}")
             
             # Batch classify texts
             batch_categories = self.classify_text_batch(texts_to_classify)
             
             for j, row in enumerate(batch.itertuples(index=False)):
-                title = row.title if pd.notna(row.title) else ""
-                description = row.description if pd.notna(row.description) else ""
-                full_text = f"{title}. {description}"
+                title = row.TITLE if pd.notna(row.TITLE) else ""  # Changed from row.title
+                description = row.DESCRIPTION if pd.notna(row.DESCRIPTION) else ""
+
+                # get LLM content using uppercase column names
+                summary = getattr(row, 'LLM_SUMMARY', '')  # Changed access method
+                teaser = getattr(row, 'LLM_TEASER', '')   # Changed access method
+                embedding_text = f"{title} {teaser} {summary}"
                 
                 data.append({
                     "id": f"vec{i+j}",
-                    "text": full_text,
+                    "text": embedding_text,
                     "metadata": {
                         "title": title,
-                        "university": row.university if pd.notna(row.university) else "",
-                        "number": row.number if pd.notna(row.number) else "",
-                        "patent": row.patent if pd.notna(row.patent) else "",
-                        "link": row.link if pd.notna(row.link) else "",
+                        "university": row.UNIVERSITY if pd.notna(row.UNIVERSITY) else "",  # Changed from row.university
+                        "number": row.NUMBER if pd.notna(row.NUMBER) else "",              # Changed from row.number
+                        "patent": row.PATENT if pd.notna(row.PATENT) else "",              # Changed from row.patent
+                        "link": row.LINK if pd.notna(row.LINK) else "",                    # Changed from row.link
                         "description": description,
-                        "category": batch_categories[j]
+                        "category": batch_categories[j],
+                        "llm_summary": summary,
+                        "llm_teaser": teaser
                     }
                 })
         
@@ -281,21 +324,24 @@ class EmbeddingsGenerator:
 
 if __name__ == "__main__":
     option = 'tech' # ONLY CHANGE THIS, DO NOT CHANGE THE REST (grants or tech)
-    date = '2024-11-26' # can actually change this too
+    date = '2024-12-05' # can actually change this too
     options = {
         'grants': {
             'index_name': f'grants-{date}',
             'data_path': 'data/grants',
-            'required_cols': ["OPPORTUNITY TITLE","AGENCY CODE","OPPORTUNITY STATUS",
-                            "POSTED DATE","CLOSE DATE","LINK","OPPORTUNITY NUMBER",
-                            "CATEGORY","LAST_UPDATED_DATE","POSTED_DATE","APPLICATION_DEADLINE",
-                            "TOTAL_FUNDING_AMOUNT","AWARD_CEILING","AWARD_FLOOR","DESCRIPTION"],
+            'required_cols': [
+                "OPPORTUNITY TITLE", "AGENCY CODE", "OPPORTUNITY STATUS",
+                "POSTED DATE", "CLOSE DATE", "LINK", "OPPORTUNITY NUMBER",
+                "CATEGORY", "LAST_UPDATED_DATE", "POSTED_DATE", "APPLICATION_DEADLINE",
+                "TOTAL_FUNDING_AMOUNT", "AWARD_CEILING", "AWARD_FLOOR", "DESCRIPTION",
+                "LLM Summary", "LLM Teaser"  # Fixed column names
+            ],
             'format_data': 'format_grants_data'
         },
         'tech': {
             'index_name': f'tech-{date}',
             'data_path': 'data/tech',
-            'required_cols': ["university", "title", "number", "patent", "link", "description"],
+            'required_cols': ["university", "title", "number", "patent", "link", "description", "LLM Summary", "LLM Teaser"],
             'format_data': 'format_tech_data'
         }
     }

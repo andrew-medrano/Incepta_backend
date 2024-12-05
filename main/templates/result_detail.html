@@ -377,7 +377,11 @@
         </div>
         
         <div class="description">
-            {{ result.metadata.description }}
+            {% if result.metadata.llm_summary %}
+                <p>{{ result.metadata.llm_summary|safe }}</p>
+            {% else %}
+                {{ result.metadata.description }}
+            {% endif %}
         </div>
 
         <div class="floating-contact">

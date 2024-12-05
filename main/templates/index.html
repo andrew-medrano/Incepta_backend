@@ -232,6 +232,7 @@
 
         .result-content {
             flex: 1;
+            position: relative;
         }
 
         .result-title {
@@ -243,6 +244,9 @@
         .result-org {
             font-size: 0.875rem;
             color: #6b7280;
+            padding-bottom: 0.5rem;
+            margin-bottom: 0.5rem;
+            border-bottom: 1px solid #e5e7eb;
         }
 
         .result:hover {
@@ -474,6 +478,12 @@
             .category-sidebar {
                 display: none; /* Hide category sidebar on mobile */
             }
+        }
+
+        .result-teaser {
+            color: #493f6f;
+            font-size: 0.85rem;
+            line-height: 1.4;
         }
     </style>
 </head>
@@ -707,6 +717,7 @@
                         <div class="result-content">
                             <div class="result-title">${result.title}</div>
                             <div class="result-org">${orgName}</div>
+                            <div class="result-teaser">${result.metadata.llm_teaser || ''}</div>
                         </div>
                     </a>`;
                 $('#results').append(resultHtml);

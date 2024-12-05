@@ -21,9 +21,6 @@ class SemanticSearch:
         self.index = self.set_index(index_name)  # This line is fixed
         
         self.top_k = top_k
-        # Comment out or remove cross-encoder initialization
-        # self.cross_encoder = CrossEncoder('cross-encoder/ms-marco-MiniLM-L-6-v2')
-        # self.sentence_embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
 
     def set_index(self, index_name):
         self.index_name = index_name
@@ -82,7 +79,7 @@ class SemanticSearch:
                 if str(match['id']).strip().lower() not in {str(id).strip().lower() for id in TECH_BLACKLIST}
             ]
         
-        return results['matches']  # Return results directly without re-ranking
+        return results['matches']
 
     def search_sync(self, query, category_filter=None):
         """Synchronous wrapper for the async search method"""

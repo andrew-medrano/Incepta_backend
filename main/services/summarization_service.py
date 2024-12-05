@@ -3,6 +3,7 @@ import pandas as pd
 from dotenv import load_dotenv
 import os
 import csv
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 load_dotenv()
 
@@ -21,7 +22,7 @@ def summarize_text(text, title, content_type='tech', max_tokens=900):
         if content_type.lower() == 'grants':
             # Get a brief description from the title using GPT
             brief_desc = openai.chat.completions.create(
-                model="gpt-4o-mini",
+                model="gpt-4o-mini-2024-07-18",
                 messages=[{
                     "role": "user",
                     "content": f"In 15 words or less, what might this grant titled '{title}' be related to? Start with 'supporting' or 'funding'"
@@ -31,14 +32,14 @@ def summarize_text(text, title, content_type='tech', max_tokens=900):
             
             return (
                 "The sponsoring grant agency did not provide a description. "
-                f"Based on the title, this grant is likely {brief_desc}.\n\n"
+                f"Based on the title, this grant is likely {brief_desc}\n\n"
                 "For more detailed information about funding objectives, eligibility requirements, "
                 "and award amounts, please reach out to learn more about this opportunity."
             )
         else:  # tech case
             # Get a brief description from the title using GPT
             brief_desc = openai.chat.completions.create(
-                model="gpt-4o-mini",
+                model="gpt-4o-mini-2024-07-18",
                 messages=[{
                     "role": "user",
                     "content": f"In 15 words or less, what might this technology titled '{title}' be able to do? Start with a verb"
@@ -83,7 +84,7 @@ def summarize_text(text, title, content_type='tech', max_tokens=900):
         )
 
     response = openai.chat.completions.create(
-        model="gpt-4o-mini",
+        model="gpt-4o-mini-2024-07-18",
         messages=[{
             "role": "user",
             "content": prompt
@@ -113,7 +114,7 @@ def generate_teaser(title, text, max_tokens=100):
         )
 
     response = openai.chat.completions.create(
-        model="gpt-4o-mini",
+        model="gpt-4o-mini-2024-07-18",
         messages=[{
             "role": "user",
             "content": prompt
@@ -138,22 +139,66 @@ def clean_text(text):
     
     return text
 
-def process_csv(input_csv_path, output_csv_path, content_type='tech', limit=None):
+def process_batch(rows, title_col, description_col, content_type):
+    """Process a batch of rows in parallel"""
+    results = []
+    with ThreadPoolExecutor() as executor:
+        # Submit summary tasks
+        summary_futures = {
+            executor.submit(summarize_text, row[description_col], row[title_col], content_type): row
+            for _, row in rows.iterrows()
+        }
+        
+        # Submit teaser tasks
+        teaser_futures = {
+            executor.submit(generate_teaser, row[title_col], row[description_col]): row
+            for _, row in rows.iterrows()
+        }
+        
+        # Collect summary results
+        summaries = {}
+        for future in as_completed(summary_futures):
+            row = summary_futures[future]
+            try:
+                summaries[row.name] = future.result()
+            except Exception as e:
+                print(f"Error processing summary for row {row.name}: {e}")
+                summaries[row.name] = None
+
+        # Collect teaser results
+        teasers = {}
+        for future in as_completed(teaser_futures):
+            row = teaser_futures[future]
+            try:
+                teasers[row.name] = future.result()
+            except Exception as e:
+                print(f"Error processing teaser for row {row.name}: {e}")
+                teasers[row.name] = None
+
+        # Combine results
+        for idx, row in rows.iterrows():
+            results.append({
+                'index': idx,
+                'summary': summaries.get(idx),
+                'teaser': teasers.get(idx)
+            })
+    
+    return results
+
+def process_csv(input_csv_path, output_csv_path, content_type='tech', limit=None, batch_size=5):
     print(f"Starting to process CSV file: {input_csv_path}")
     
     # Load the CSV file
     df = pd.read_csv(input_csv_path, 
-                     skipinitialspace=True,  # Skip spaces after delimiter
-                     skip_blank_lines=True,  # Skip blank lines
-                     encoding='utf-8',       # Specify encoding
-                     on_bad_lines='skip',     # Skip problematic lines
+                     skipinitialspace=True,
+                     skip_blank_lines=True,
+                     encoding='utf-8',
+                     on_bad_lines='skip',
                      nrows=limit)
     print(f"Loaded {len(df)} rows from CSV")
 
-    # Clean column names by stripping whitespace
+    # Clean column names and find correct columns
     df.columns = df.columns.str.strip()
-
-    # Find the correct columns using case-insensitive matching
     title_patterns = ['OPPORTUNITY TITLE', 'TITLE']
     desc_patterns = ['DESCRIPTION']
     
@@ -165,60 +210,76 @@ def process_csv(input_csv_path, output_csv_path, content_type='tech', limit=None
     if not title_col or not description_col:
         raise ValueError(f"Could not find required columns. Available columns: {df.columns.tolist()}")
 
+    # Check if output file exists and load previous progress
+    if os.path.exists(output_csv_path):
+        existing_df = pd.read_csv(output_csv_path)
+        # Find which rows have already been processed - using the correct title column name
+        processed_titles = set(existing_df[existing_df['LLM Summary'].notna()][title_col])
+        df = df[~df[title_col].isin(processed_titles)]
+        print(f"Resuming from previous progress. {len(processed_titles)} rows already processed")
+        result_df = existing_df
+    else:
+        result_df = df.copy()
+
     print(f"Using columns: {title_col} and {description_col}")
 
-    # Add new columns for summaries and teasers with improved cleaning
-    df['Description'] = df[description_col].apply(clean_text)
+    # Clean the description column in place
+    df[description_col] = df[description_col].apply(clean_text)
     
-    print("Starting to generate summaries...")
-    df['LLM Summary'] = df.apply(lambda row: 
-        summarize_text(row['Description'], row[title_col], content_type), axis=1)
-    print("Finished generating summaries")
-    
-    print("Starting to generate teasers...")
-    df['LLM Teaser'] = df.apply(lambda row: 
-        generate_teaser(row[title_col], row['Description']), axis=1)
-    print("Finished generating teasers")
+    # Process in batches
+    for start_idx in range(0, len(df), batch_size):
+        end_idx = min(start_idx + batch_size, len(df))
+        print(f"\nProcessing batch {start_idx//batch_size + 1} (rows {start_idx+1} to {end_idx})")
+        
+        batch_df = df.iloc[start_idx:end_idx]
+        results = process_batch(batch_df, title_col, description_col, content_type)
+        
+        # Update result_df with batch results
+        for result in results:
+            idx = result['index']
+            # Copy all columns from the input dataframe for this row
+            for col in df.columns:
+                result_df.at[idx, col] = df.at[idx, col]
+            # Add the summary and teaser
+            if result['summary']:
+                result_df.at[idx, 'LLM Summary'] = result['summary']
+            if result['teaser']:
+                result_df.at[idx, 'LLM Teaser'] = result['teaser']
+        
+        # Save progress after each batch
+        result_df.to_csv(output_csv_path, index=False, quoting=csv.QUOTE_ALL)
+        print(f"Saved progress for batch {start_idx//batch_size + 1}")
 
-    # Debugging: Check if 'LLM Teaser' column exists
-    print("Columns in DataFrame before saving:", df.columns)
-
-    # Save without any manual newline encoding - let pandas handle it
-    print(f"Saving results to: {output_csv_path}")
-    df.to_csv(output_csv_path, index=False, quoting=csv.QUOTE_ALL)
     print("Processing complete!")
 
-def read_and_process_csv(file_path, content_type='tech'):
+def read_and_process_csv(file_path, content_type='tech', start_idx=0, end_idx=None):
     # Let pandas handle the newline parsing
     df = pd.read_csv(file_path, lineterminator='\n')
-    for _, row in df.iterrows():
-        print("\n" + "="*80)
-        if content_type == 'tech':
-            print(f"TECHNOLOGY TITLE: {row['title']}")
-            print("-"*80)
-            print(f"TECHNICAL DESCRIPTION:\n{row['Description']}")
-        else:  # grants
-            print(f"GRANT OPPORTUNITY: {row['OPPORTUNITY TITLE']}")
+    if end_idx:
+        df = df.iloc[start_idx:end_idx]
+    for i, (_, row) in enumerate(df.iterrows()):
+        if i >= start_idx and (end_idx is None or i < end_idx):
+            print("\n" + "="*80)
+            if content_type == 'tech':
+                print(f"TECHNOLOGY TITLE: {row['title']}")
+                print("-"*80)
+                print(f"TECHNICAL DESCRIPTION:\n{row['description']}")
+            else:  # grants
+                print(f"GRANT OPPORTUNITY: {row['OPPORTUNITY TITLE']}")
+                print("-"*80) 
+                print(f"GRANT DESCRIPTION:\n{row['DESCRIPTION']}")
             print("-"*80) 
-            print(f"GRANT DESCRIPTION:\n{row['DESCRIPTION']}")
-        print("-"*80) 
-        print(f"TEASER:\n{row['LLM Teaser']}")
-        print("-"*80)
-        print(f"SUMMARY:\n{row['LLM Summary']}")
+            print(f"TEASER:\n{row['LLM Teaser']}")
+            print("-"*80)
+            print(f"SUMMARY:\n{row['LLM Summary']}")
 
 if __name__ == "__main__":
     # Example usage
-    input_csv_path = 'Incepta_backend/data/grants/grants_gov_scraped_2024_11_20_cleaned.csv'
-    output_csv_path = 'Incepta_backend/data/grants/grants_gov_scraped_2024_11_20_random.csv'
-    summarized_csv_path = 'Incepta_backend/data/grants/grants_gov_scraped_2024_11_20_summarized.csv'
-    
-    # Create random sample
-    df = pd.read_csv(input_csv_path)
-    random_rows = df.sample(n=10)
-    random_rows.to_csv(output_csv_path, index=False)
+    input_csv_path = 'Incepta_backend/data/tech/stanford_2024_11_24.csv'
+    output_csv_path = 'Incepta_backend/data/tech/stanford_2024_11_24_summarized.csv'
     
     # Process and summarize
-    process_csv(output_csv_path, summarized_csv_path, content_type='grants')
+    process_csv(input_csv_path, output_csv_path, content_type='tech', limit=None)
     
-    # Read the summarized CSV (not the random sample CSV)
-    read_and_process_csv(summarized_csv_path, content_type='grants')
+    # Read and display the results
+    # read_and_process_csv(output_csv_path, content_type='tech')

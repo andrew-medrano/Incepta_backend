@@ -14,7 +14,7 @@ import os
 from dotenv import load_dotenv
 import requests
 import logging
-
+import re
 
 search_bp = Blueprint('search', __name__)
 
@@ -38,7 +38,9 @@ def search():
                 'id': match['id'],
                 'score': float(match.get('relevance_score', 0)),
                 'title': metadata.get('title', ''),
-                'metadata': {}
+                'metadata': {
+                    'llm_teaser': metadata.get('llm_teaser', '')
+                }
             }
             
             if index_name == 'tech':
@@ -71,8 +73,11 @@ def result_detail(index, id):
     result = ss.get_by_id(id)
 
     # change newlines in description metadata to <br>
-    result['metadata']['description'] = result['metadata']['description'].replace('\\n', '\n')
+    result['metadata']['llm_summary'] = result['metadata']['llm_summary'].replace('\\n', '\n')
     
+    # change words in **bold** to <b>bold</b>
+    result['metadata']['llm_summary'] = re.sub(r'\*\*([^\*]+)\*\*', r'<b>\1</b>', result['metadata']['llm_summary'])
+
     if not result:
         return "Result not found", 404
     
