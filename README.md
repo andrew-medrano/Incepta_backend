@@ -121,3 +121,7 @@ Development Notes
 - Search results returned via AJAX calls
 - Async/await pattern for efficient search operations
 - Cross-encoder reranking for better result quality
+
+Notes
+- need to summarize and upsert all of stanford, not all was done before because of rate limit
+- need to scrape upenn again. Only got 15/21 pages. low priority though

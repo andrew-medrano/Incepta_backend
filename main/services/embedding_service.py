@@ -264,7 +264,7 @@ class EmbeddingsGenerator:
                 embedding_text = f"{title} {teaser} {summary}"
                 
                 data.append({
-                    "id": f"{row.UNIVERSITY}-{row.NUMBER}",
+                    "id": f"{row.UNIVERSITY}-{row.NUMBER}".replace(' ', '_'), # replace spaces with underscores, because id will be used in url
                     "text": embedding_text,
                     "metadata": {
                         "title": title,
