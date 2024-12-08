@@ -10,6 +10,12 @@ UNIVERSITY_INFO = {
         'logo': 'static/university_logos/mit.png',
         'tech_transfer_office': 'MIT Technology Licensing Office',
         'website': 'https://tlo.mit.edu/'
+    },
+    'Columbia': {
+        'name': 'Columbia University',
+        'logo': 'static/university_logos/columbia.png',
+        'tech_transfer_office': 'Columbia University Technology Ventures',
+        'website': 'https://techventures.columbia.edu/'
     }
 }
 

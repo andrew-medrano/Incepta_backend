@@ -3,7 +3,7 @@ from pinecone import Pinecone, ServerlessSpec
 import time
 import os
 from tqdm import tqdm
-from main.constants.categories import CATEGORIES
+from main.constants.categories import CATEGORIES, CATEGORY_DESCRIPTIONS
 from main.constants.metadata_fields import (
     TECH_METADATA_FIELDS,
     GRANTS_METADATA_FIELDS,
@@ -26,9 +26,16 @@ class EmbeddingsGenerator:
         print("Setting up Pinecone client...")
         PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
         self.pc = Pinecone(api_key=PINECONE_API_KEY)
+        
+        # Create enhanced category texts that combine name and description
+        enhanced_categories = [
+            f"{category}: {CATEGORY_DESCRIPTIONS[category]}"
+            for category in self.categories
+        ]
+        
         self.category_embeddings = self.pc.inference.embed(
             model='multilingual-e5-large',
-            inputs=self.categories,
+            inputs=enhanced_categories,
             parameters={"input_type": "passage", "truncate": "END"}
         )
         print("Pinecone client and category embeddings setup complete.")
@@ -257,7 +264,7 @@ class EmbeddingsGenerator:
                 embedding_text = f"{title} {teaser} {summary}"
                 
                 data.append({
-                    "id": f"vec{i+j}",
+                    "id": f"{row.UNIVERSITY}-{row.NUMBER}",
                     "text": embedding_text,
                     "metadata": {
                         "title": title,

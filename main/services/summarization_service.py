@@ -275,8 +275,8 @@ def read_and_process_csv(file_path, content_type='tech', start_idx=0, end_idx=No
 
 if __name__ == "__main__":
     # Example usage
-    input_csv_path = 'Incepta_backend/data/tech/stanford_2024_11_24.csv'
-    output_csv_path = 'Incepta_backend/data/tech/stanford_2024_11_24_summarized.csv'
+    input_csv_path = 'Incepta_backend/data/tech/columbia_2024_12_07.csv'
+    output_csv_path = 'Incepta_backend/data/tech/columbia_2024_12_07_summarized.csv'
     
     # Process and summarize
     process_csv(input_csv_path, output_csv_path, content_type='tech', limit=None)
